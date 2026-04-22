@@ -18,6 +18,8 @@ const analyticsRoutes = require("./routes/analyticsRoutes");
 
 // ── App & HTTP server setup ────────────────────────────────────
 const app = express();
+app.use(cors());
+app.use(express.json());
 const httpServer = http.createServer(app);
 
 // ── Socket.IO ─────────────────────────────────────────────────

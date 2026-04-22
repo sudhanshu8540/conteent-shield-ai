@@ -4,9 +4,13 @@ const Fingerprint = require("../models/Fingerprint");
 const Detection = require("../models/Detection");
 const { asyncHandler } = require("../middleware/errorMiddleware");
 const { categoriseFile } = require("../utils/fileUtils");
-const { generateFileHash, generateHashFromString, computeSimilarityScore } =
-  require("../utils/hashUtils");
+const {
+  generateFileHash,
+  generateHashFromString,
+  computeSimilarityScore,
+} = require("../utils/hashUtils");
 const { getPlatformForFile } = require("../utils/platformUtils");
+
 
 // ── POST /api/upload ──────────────────────────────────────────
 const uploadFile = asyncHandler(async (req, res) => {
@@ -15,13 +19,9 @@ const uploadFile = asyncHandler(async (req, res) => {
   }
 
   const isCloudinary = process.env.STORAGE_MODE === "cloudinary";
-  const fileUrl = isCloudinary
-    ? req.file.path // Cloudinary returns full URL in path
-    : `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
-
+  const fileUrl = req.file.path;
   const filePath = isCloudinary ? null : req.file.path;
 
-  // ── 1. Save File metadata ──────────────────────────────────
   const fileDoc = await File.create({
     userId: req.user._id,
     fileName: req.file.filename || req.file.public_id,
@@ -34,7 +34,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     publicId: req.file.public_id || null,
   });
 
-  // ── 2. Generate fingerprint ────────────────────────────────
   let fingerprintHash;
   try {
     fingerprintHash = filePath
@@ -46,7 +45,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     );
   }
 
-  // Check for exact duplicate first
   const exactMatch = await Fingerprint.findOne({ fingerprintHash });
 
   const fingerprint = await Fingerprint.create({
@@ -54,7 +52,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     fingerprintHash,
   });
 
-  // ── 3. Duplicate detection ─────────────────────────────────
   const allPrints = await Fingerprint.find({
     fileId: { $ne: fileDoc._id },
   }).populate("fileId");
@@ -62,21 +59,27 @@ const uploadFile = asyncHandler(async (req, res) => {
   const matchedFiles = [];
 
   for (const fp of allPrints) {
-    const score = computeSimilarityScore(fingerprintHash, fp.fingerprintHash);
+    const score = computeSimilarityScore(
+      fingerprintHash,
+      fp.fingerprintHash
+    );
+
     if (score >= 30) {
-      // threshold: 30 % similarity
       matchedFiles.push({
         fileId: fp.fileId?._id,
         similarityScore: score,
-        platform: getPlatformForFile(fp.fileId?._id?.toString() || ""),
+        platform: getPlatformForFile(
+          fp.fileId?._id?.toString() || ""
+        ),
       });
     }
   }
 
-  // Sort descending by score
   matchedFiles.sort((a, b) => b.similarityScore - a.similarityScore);
 
-  const isDuplicate = exactMatch !== null || matchedFiles.some((m) => m.similarityScore >= 90);
+  const isDuplicate =
+    exactMatch !== null ||
+    matchedFiles.some((m) => m.similarityScore >= 90);
 
   const detection = await Detection.create({
     originalFileId: fileDoc._id,
@@ -86,7 +89,6 @@ const uploadFile = asyncHandler(async (req, res) => {
     isDuplicate,
   });
 
-  // ── 4. Emit real-time event via Socket.IO ──────────────────
   const io = req.app.get("io");
   if (io && isDuplicate) {
     io.emit("detection:new", {
@@ -114,13 +116,16 @@ const uploadFile = asyncHandler(async (req, res) => {
   });
 });
 
+
 // ── GET /api/files ─────────────────────────────────────────────
 const getFiles = asyncHandler(async (req, res) => {
   const { page = 1, limit = 20, type } = req.query;
+
   const filter = { userId: req.user._id };
   if (type) filter.fileType = type;
 
   const total = await File.countDocuments(filter);
+
   const files = await File.find(filter)
     .sort({ uploadedAt: -1 })
     .skip((page - 1) * limit)
@@ -134,4 +139,24 @@ const getFiles = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { uploadFile, getFiles };
+
+// ── DELETE /api/files/:id ──────────────────────────────────────
+const deleteFile = asyncHandler(async (req, res) => {
+  const file = await File.findById(req.params.id);
+
+  if (!file) {
+    return res.status(404).json({ message: "File not found" });
+  }
+
+  await file.deleteOne();
+
+  res.json({ message: "File deleted successfully" });
+});
+
+
+// ── EXPORT ────────────────────────────────────────────────────
+module.exports = {
+  uploadFile,
+  getFiles,
+  deleteFile,
+};

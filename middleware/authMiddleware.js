@@ -8,13 +8,18 @@ const protect = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({ message: "Not authorised – no token provided" });
-    }
+// ✅ Step 1: Header check
+if (!authHeader || !authHeader.startsWith("Bearer ")) {
+  return res.status(401).json({ message: "Not authorised - no token provided" });
+}
 
-    const token = authHeader.split(" ")[1];
+// ✅ Step 2: Token extract
+const token = authHeader.split(" ")[1];
+
+// ✅ Step 3: Token empty check
+if (!token) {
+  return res.status(401).json({ message: "Token missing" });
+}
     const decoded = verifyToken(token);
 
     const user = await User.findById(decoded.id).select("-password");
