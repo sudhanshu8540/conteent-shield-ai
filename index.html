@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ContentShield AI — Elite Content Protection</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 :root {
   --bg: #060608;
@@ -12,7 +13,7 @@
   --bg3: #111118;
   --surface: rgba(255,255,255,0.028);
   --surface2: rgba(255,255,255,0.055);
-  --gold: #C9A84C;
+  --gold: #C9A84C; 
   --gold-bright: #E8C46A;
   --gold-glow: rgba(201,168,76,0.18);
   --gold-border: rgba(201,168,76,0.22);
@@ -1227,6 +1228,41 @@ canvas { max-width: 100%; }
 </div>
 
 <script>
+  // Ye function check karega ki user logged in hai ya nahi
+function updateNavbarStatus() {
+    const token = localStorage.getItem("token"); 
+    
+    if (token) {
+        // Logged in: Public buttons chhupao, Private Avatar dikhao
+        document.getElementById("nav-public").style.display = "none";
+        document.getElementById("nav-private").style.display = "flex";
+    } else {
+        // Logged out: Public buttons dikhao, Private Avatar chhupao
+        document.getElementById("nav-public").style.display = "flex";
+        document.getElementById("nav-private").style.display = "none";
+    }
+}
+// --- Socket Connection Logic ---
+const socket = io("http://localhost:5000"); 
+
+socket.on("connect", () => {
+    console.log("Connected to Backend! ✅");
+    
+    // Status label ko "Connected" aur dot ko green karne ke liye
+    const apiLabel = document.getElementById("api-label");
+    const apiDot = document.getElementById("api-dot");
+    
+    if (apiLabel) apiLabel.innerText = "Connected";
+    if (apiDot) apiDot.style.backgroundColor = "#4ade80"; 
+});
+
+socket.on("connect_error", (err) => {
+    console.log("Socket Connection Error: ", err.message);
+});
+
+
+// Jaise hi page khulega, ye function turant chalega
+window.onload = updateNavbarStatus;
 /* ═══════════════════ CONFIG ═══════════════════ */
 const API_BASE = 'http://localhost:5000/api'; // ← change to your backend URL
 
@@ -1853,7 +1889,13 @@ async function doLogin() {
     alertBox.innerText = "Login successful ✅";
 
     console.log("LOGIN:", data);
+    
+        // ---> YAHAN (Line 1856 par) ye 3 line ka naya code likhiye <---
+        setTimeout(() => {
+    window.location.reload(); 
+}, 1000);
 
+    // Line 1857 (Pehle se hai, isko mat chhedna)
   } catch (err) {
     alertBox.style.display = "block";
     alertBox.style.color = "red";

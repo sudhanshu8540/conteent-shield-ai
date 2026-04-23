@@ -12,7 +12,7 @@ Production-ready REST API for AI-powered content fingerprinting and duplicate de
 | Framework | Express.js |
 | Database | MongoDB + Mongoose |
 | Auth | JWT + bcryptjs |
-| File Upload | Multer |
+| File Upload | Multer |                      
 | Cloud Storage | Cloudinary (optional) |
 | Real-time | Socket.IO |
 | Rate Limiting | express-rate-limit |
@@ -68,7 +68,7 @@ npm install
 ```
 
 ### 2. Configure environment
-```bash
+```bash                   
 cp .env.example .env
 ```
 
@@ -302,3 +302,7 @@ To upgrade to perceptual hashing:
 1. Install `sharp` + `phash` (for images) or `ffmpeg` (for video/audio)
 2. Replace `computeSimilarityScore` in `utils/hashUtils.js` with a Hamming-distance-based pHash comparison
 3. Update the `Fingerprint` model's `metadata` field to store perceptual hash vectors
+
+maine dono maine bnaaya hai
+dono?
+awaaj dhire kyu ho jaati
