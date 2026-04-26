@@ -1,0 +1,4109 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>ContentShield AI — Elite Content Protection</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script>
+
+// Console safety shim — ensures log/warn/info always exist
+
+window.console = window.console || {};
+
+['log','warn','info','error','debug'].forEach(function(m){
+
+  if(typeof console[m] !== 'function') console[m] = function(){};
+
+});
+
+// Socket.IO loader with CDN fallback + graceful mock
+
+(function() {
+
+  var cdns = [
+
+    'https://cdn.socket.io/4.7.2/socket.io.min.js',
+
+    'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js',
+
+    'https://unpkg.com/socket.io-client@4.7.2/dist/socket.io.min.js'
+
+  ];
+
+  var idx = 0;
+
+  function tryNext() {
+
+    if (idx >= cdns.length) {
+
+      // All CDNs failed — inject a mock so the app still works
+
+      window.__socketMock = true;
+
+      window.io = function(url) {
+
+        var handlers = {};
+
+        return {
+
+          on: function(ev, fn) { handlers[ev] = fn; },
+
+          off: function() {},
+
+          disconnect: function() {},
+
+          emit: function() {},
+
+          connected: false,
+
+          _trigger: function(ev, data) { if(handlers[ev]) handlers[ev](data); }
+
+        };
+
+      };
+
+      // All CDNs failed — offline mock active
+
+      document.dispatchEvent(new Event('socketio-ready'));
+
+      return;
+
+    }
+
+    var s = document.createElement('script');
+
+    s.src = cdns[idx++];
+
+    s.onload = function() { document.dispatchEvent(new Event('socketio-ready')); };
+
+    s.onerror = function() { tryNext(); };
+
+    document.head.appendChild(s);
+
+  }
+
+  tryNext();
+
+})();
+
+</script>
+
+<style>
+
+:root {
+
+  --bg: #060608;
+
+  --bg2: #0c0c10;
+
+  --bg3: #111118;
+
+  --surface: rgba(255,255,255,0.028);
+
+  --surface2: rgba(255,255,255,0.055);
+
+  --gold: #C9A84C;
+
+  --gold-bright: #E8C46A;
+
+  --gold-glow: rgba(201,168,76,0.18);
+
+  --gold-border: rgba(201,168,76,0.22);
+
+  --text: #F2EDE3;
+
+  --text2: rgba(242,237,227,0.58);
+
+  --text3: rgba(242,237,227,0.32);
+
+  --success: #2ECC8A;
+
+  --danger: #E05252;
+
+  --info: #5B9EE8;
+
+  --warning: #E8B847;
+
+  --radius: 12px;
+
+  --radius-lg: 20px;
+
+  --radius-xl: 32px;
+
+  --nav-h: 70px;
+
+  --transition: cubic-bezier(0.23, 1, 0.32, 1);
+
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+
+  background: var(--bg);
+
+  color: var(--text);
+
+  font-family: 'DM Sans', sans-serif;
+
+  font-weight: 400;
+
+  font-size: 15px;
+
+  line-height: 1.65;
+
+  min-height: 100vh;
+
+  overflow-x: hidden;
+
+}
+
+::-webkit-scrollbar { width: 4px; }
+
+::-webkit-scrollbar-track { background: var(--bg2); }
+
+::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 2px; }
+
+body::before {
+
+  content: '';
+
+  position: fixed;
+
+  inset: 0;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+
+  pointer-events: none;
+
+  z-index: 0;
+
+  opacity: 0.5;
+
+}
+
+#particles-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+nav {
+
+  position: fixed; top: 0; left: 0; right: 0;
+
+  height: var(--nav-h);
+
+  display: flex; align-items: center; justify-content: space-between;
+
+  padding: 0 40px;
+
+  z-index: 100;
+
+  background: rgba(6,6,8,0.72);
+
+  backdrop-filter: blur(24px);
+
+  border-bottom: 1px solid rgba(201,168,76,0.1);
+
+  transition: background 0.4s;
+
+}
+
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; cursor: pointer; }
+
+.nav-logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #C9A84C, #8B6914); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; box-shadow: 0 0 20px rgba(201,168,76,0.35); }
+
+.nav-logo-text { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: 0.02em; }
+
+.nav-logo-text span { color: var(--gold); }
+
+.nav-links { display: flex; align-items: center; gap: 6px; list-style: none; }
+
+.nav-links a, .nav-links button { padding: 7px 16px; border-radius: 8px; color: var(--text2); text-decoration: none; font-size: 14px; font-weight: 500; background: none; border: none; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
+
+.nav-links a:hover, .nav-links button:hover { color: var(--text); background: var(--surface); }
+
+.nav-links .active { color: var(--gold); }
+
+.nav-cta { background: linear-gradient(135deg, #C9A84C, #9A7A2E) !important; color: #000 !important; font-weight: 600 !important; box-shadow: 0 0 24px rgba(201,168,76,0.3); }
+
+.nav-cta:hover { transform: translateY(-1px); box-shadow: 0 0 32px rgba(201,168,76,0.45) !important; background: linear-gradient(135deg, #E8C46A, #C9A84C) !important; }
+
+.nav-user { display: flex; align-items: center; gap: 10px; }
+
+.nav-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #C9A84C, #8B6914); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: #000; cursor: pointer; }
+
+.view { display: none; position: relative; z-index: 1; }
+
+.view.active { display: block; }
+
+#landing { min-height: 100vh; }
+
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: calc(var(--nav-h) + 40px) 40px 80px; position: relative; }
+
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border: 1px solid var(--gold-border); border-radius: 100px; font-size: 12px; font-weight: 500; color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 32px; background: rgba(201,168,76,0.06); animation: fadeUp 0.8s var(--transition) both; }
+
+.hero-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: pulse 2s infinite; }
+
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(0.8); } }
+
+.hero-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(48px, 8vw, 88px); font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; animation: fadeUp 0.8s 0.1s var(--transition) both; }
+
+.hero-title .gold-text { background: linear-gradient(135deg, #C9A84C 0%, #F0D080 50%, #C9A84C 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; background-size: 200% auto; animation: shimmer 4s linear infinite; }
+
+@keyframes shimmer { to { background-position: 200% center; } }
+
+.hero-sub { font-size: 18px; color: var(--text2); max-width: 560px; margin: 0 auto 48px; line-height: 1.7; animation: fadeUp 0.8s 0.2s var(--transition) both; }
+
+.hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; animation: fadeUp 0.8s 0.3s var(--transition) both; }
+
+@keyframes fadeUp { from { opacity:0; transform: translateY(24px); } to { opacity:1; transform: translateY(0); } }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 28px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all 0.25s var(--transition); font-family: 'DM Sans', sans-serif; text-decoration: none; letter-spacing: 0.02em; white-space: nowrap; }
+
+.btn-gold { background: linear-gradient(135deg, #C9A84C, #9A7A2E); color: #000; box-shadow: 0 0 30px rgba(201,168,76,0.3), 0 4px 15px rgba(0,0,0,0.4); }
+
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(201,168,76,0.45), 0 8px 25px rgba(0,0,0,0.5); background: linear-gradient(135deg, #E8C46A, #C9A84C); }
+
+.btn-ghost { background: var(--surface); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+
+.btn-ghost:hover { background: var(--surface2); border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+.btn-danger { background: rgba(224,82,82,0.15); color: var(--danger); border: 1px solid rgba(224,82,82,0.3); }
+
+.btn-danger:hover { background: rgba(224,82,82,0.25); }
+
+.btn-success { background: rgba(46,204,138,0.15); color: var(--success); border: 1px solid rgba(46,204,138,0.3); }
+
+.btn-success:hover { background: rgba(46,204,138,0.25); }
+
+.btn-sm { padding: 8px 16px; font-size: 13px; }
+
+.btn-full { width: 100%; justify-content: center; }
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+.hero-stats { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; margin-top: 64px; animation: fadeUp 0.8s 0.4s var(--transition) both; }
+
+.hero-stat { text-align: center; }
+
+.hero-stat-num { font-family: 'Cormorant Garamond', serif; font-size: 36px; font-weight: 600; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+
+.hero-stat-label { font-size: 12px; color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; }
+
+.section { padding: 100px 40px; max-width: 1200px; margin: 0 auto; }
+
+.section-tag { font-size: 11px; font-weight: 600; color: var(--gold); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px; }
+
+.section-title { font-family: 'Cormorant Garamond', serif; font-size: clamp(32px, 4vw, 52px); font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; margin-bottom: 16px; }
+
+.section-sub { color: var(--text2); font-size: 17px; max-width: 520px; line-height: 1.7; }
+
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px; background: var(--gold-border); border: 1px solid var(--gold-border); border-radius: var(--radius-lg); overflow: hidden; margin-top: 60px; }
+
+.feature-card { background: var(--bg2); padding: 36px 32px; transition: background 0.3s; }
+
+.feature-card:hover { background: var(--bg3); }
+
+.feature-icon { width: 48px; height: 48px; background: var(--gold-glow); border: 1px solid var(--gold-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 20px; }
+
+.feature-title { font-size: 17px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+
+.feature-desc { color: var(--text2); font-size: 14px; line-height: 1.65; }
+
+.how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; margin-top: 60px; position: relative; }
+
+.how-step { position: relative; padding: 28px; background: var(--surface); border: 1px solid rgba(201,168,76,0.08); border-radius: var(--radius); transition: all 0.3s; }
+
+.how-step:hover { border-color: var(--gold-border); transform: translateY(-4px); }
+
+.how-step-num { font-family: 'Cormorant Garamond', serif; font-size: 56px; font-weight: 600; color: rgba(201,168,76,0.12); line-height: 1; margin-bottom: 12px; }
+
+.how-step-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+
+.how-step-desc { font-size: 13px; color: var(--text2); line-height: 1.6; }
+
+footer { padding: 40px; text-align: center; border-top: 1px solid rgba(201,168,76,0.1); color: var(--text3); font-size: 13px; }
+
+footer strong { color: var(--gold); }
+
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 200; align-items: center; justify-content: center; }
+
+.modal-overlay.open { display: flex; animation: fadeIn 0.2s; }
+
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.modal { background: var(--bg2); border: 1px solid var(--gold-border); border-radius: var(--radius-xl); padding: 44px 40px; width: 100%; max-width: 440px; position: relative; animation: slideUp 0.3s var(--transition); box-shadow: 0 0 80px rgba(201,168,76,0.12), 0 40px 80px rgba(0,0,0,0.8); }
+
+@keyframes slideUp { from { opacity:0; transform: translateY(30px) scale(0.96); } to { opacity:1; transform: none; } }
+
+.modal-close { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 8px; background: var(--surface); border: 1px solid rgba(255,255,255,0.08); color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.2s; }
+
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+
+.modal-title { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 600; margin-bottom: 6px; }
+
+.modal-sub { color: var(--text2); font-size: 14px; margin-bottom: 28px; }
+
+.form-group { margin-bottom: 16px; }
+
+.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+
+.form-input { width: 100%; padding: 12px 14px; background: var(--surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; transition: all 0.2s; outline: none; }
+
+.form-input:focus { border-color: var(--gold-border); box-shadow: 0 0 0 3px rgba(201,168,76,0.1); background: var(--surface2); }
+
+.form-input::placeholder { color: var(--text3); }
+
+.form-switch { text-align: center; margin-top: 16px; font-size: 13px; color: var(--text2); }
+
+.form-switch a { color: var(--gold); cursor: pointer; text-decoration: none; }
+
+.form-switch a:hover { text-decoration: underline; }
+
+.alert { padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+
+.alert.danger { background: rgba(224,82,82,0.12); border: 1px solid rgba(224,82,82,0.3); color: #E05252; display: block; }
+
+.alert.success { background: rgba(46,204,138,0.12); border: 1px solid rgba(46,204,138,0.3); color: var(--success); display: block; }
+
+#dashboard { padding-top: var(--nav-h); min-height: 100vh; }
+
+.dashboard-inner { display: flex; min-height: calc(100vh - var(--nav-h)); }
+
+.sidebar { width: 240px; flex-shrink: 0; background: var(--bg2); border-right: 1px solid rgba(201,168,76,0.08); padding: 24px 12px; position: sticky; top: var(--nav-h); height: calc(100vh - var(--nav-h)); overflow-y: auto; }
+
+.sidebar-section { margin-bottom: 8px; }
+
+.sidebar-label { font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; padding: 0 12px; margin-bottom: 6px; margin-top: 16px; }
+
+.sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text2); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left; font-family: 'DM Sans', sans-serif; }
+
+.sidebar-item:hover { background: var(--surface); color: var(--text); }
+
+.sidebar-item.active { background: var(--gold-glow); color: var(--gold); border: 1px solid var(--gold-border); }
+
+.sidebar-icon { font-size: 15px; width: 18px; text-align: center; }
+
+.sidebar-badge { margin-left: auto; background: var(--gold); color: #000; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 100px; }
+
+.main-content { flex: 1; padding: 32px 36px; min-width: 0; }
+
+.page { display: none; }
+
+.page.active { display: block; animation: fadeUp 0.4s var(--transition); }
+
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+
+.page-title { font-family: 'Cormorant Garamond', serif; font-size: 32px; font-weight: 600; margin-bottom: 4px; }
+
+.page-sub { color: var(--text2); font-size: 14px; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+
+.stat-card { background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 22px 20px; transition: all 0.3s; }
+
+.stat-card:hover { border-color: var(--gold-border); transform: translateY(-2px); }
+
+.stat-card-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+.stat-card-value { font-family: 'Cormorant Garamond', serif; font-size: 38px; font-weight: 600; color: var(--text); line-height: 1; margin-bottom: 6px; }
+
+.stat-card-trend { font-size: 12px; color: var(--success); display: flex; align-items: center; gap: 4px; }
+
+.stat-card-trend.down { color: var(--danger); }
+
+.stat-card.gold-accent { border-color: var(--gold-border); background: var(--gold-glow); }
+
+.stat-card.gold-accent .stat-card-value { color: var(--gold); }
+
+.card { background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; }
+
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+
+.card-title { font-size: 15px; font-weight: 600; }
+
+.card-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+
+.upload-zone { border: 2px dashed rgba(201,168,76,0.25); border-radius: var(--radius-xl); padding: 64px 32px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative; background: rgba(201,168,76,0.02); }
+
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--gold); background: rgba(201,168,76,0.06); transform: scale(1.01); }
+
+.upload-icon { width: 72px; height: 72px; margin: 0 auto 20px; background: var(--gold-glow); border: 1px solid var(--gold-border); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+
+.upload-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+
+.upload-sub { color: var(--text2); font-size: 14px; margin-bottom: 20px; }
+
+.upload-types { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+
+.upload-type-tag { padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; background: var(--surface2); color: var(--text2); border: 1px solid rgba(255,255,255,0.08); }
+
+#file-input { display: none; }
+
+.upload-progress { display: none; margin-top: 24px; }
+
+.progress-file { display: flex; align-items: center; gap: 12px; padding: 14px; background: var(--surface); border-radius: 10px; margin-bottom: 12px; }
+
+.progress-file-icon { width: 36px; height: 36px; background: var(--gold-glow); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+.progress-info { flex: 1; min-width: 0; }
+
+.progress-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 6px; }
+
+.progress-bar-wrap { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+
+.progress-bar { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #C9A84C, #F0C040); transition: width 0.3s; }
+
+.progress-pct { font-size: 12px; color: var(--gold); font-weight: 600; }
+
+.file-list { display: flex; flex-direction: column; gap: 1px; }
+
+.file-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--surface); border-radius: 10px; transition: all 0.2s; margin-bottom: 8px; border: 1px solid transparent; }
+
+.file-item:hover { background: var(--surface2); border-color: rgba(201,168,76,0.1); }
+
+.file-item-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+
+.fi-image { background: rgba(91,158,232,0.15); }
+
+.fi-video { background: rgba(224,82,82,0.15); }
+
+.fi-audio { background: rgba(46,204,138,0.15); }
+
+.fi-pdf { background: rgba(232,184,71,0.15); }
+
+.file-item-info { flex: 1; min-width: 0; }
+
+.file-item-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+
+.file-item-meta { font-size: 12px; color: var(--text3); }
+
+.file-item-actions { display: flex; gap: 8px; }
+
+.badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 100px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; }
+
+.badge-success { background: rgba(46,204,138,0.12); color: var(--success); border: 1px solid rgba(46,204,138,0.25); }
+
+.badge-danger { background: rgba(224,82,82,0.12); color: var(--danger); border: 1px solid rgba(224,82,82,0.25); }
+
+.badge-warning { background: rgba(232,184,71,0.12); color: var(--warning); border: 1px solid rgba(232,184,71,0.25); }
+
+.badge-info { background: rgba(91,158,232,0.12); color: var(--info); border: 1px solid rgba(91,158,232,0.25); }
+
+.badge-gold { background: var(--gold-glow); color: var(--gold); border: 1px solid var(--gold-border); }
+
+.detection-card { background: var(--surface); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 10px; transition: all 0.2s; }
+
+.detection-card:hover { border-color: rgba(201,168,76,0.15); }
+
+.detection-card.is-dup { border-color: rgba(224,82,82,0.2); background: rgba(224,82,82,0.03); }
+
+.detection-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+
+.detection-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+
+.detection-meta-item { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 5px; }
+
+.match-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+
+.match-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--bg3); border-radius: 8px; }
+
+.match-score-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+
+.match-score-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--success), #6EE7B7); }
+
+.match-score-fill.danger { background: linear-gradient(90deg, var(--danger), #F87171); }
+
+.match-score-val { font-size: 12px; font-weight: 600; color: var(--text2); font-family: 'JetBrains Mono', monospace; width: 36px; }
+
+.platform-pill { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 100px; background: var(--surface2); color: var(--text2); }
+
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+@media (max-width: 900px) { .analytics-grid { grid-template-columns: 1fr; } }
+
+.bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; padding-top: 10px; }
+
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+
+.bar { width: 100%; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--gold), rgba(201,168,76,0.4)); transition: all 0.5s var(--transition); }
+
+.bar:hover { filter: brightness(1.2); }
+
+.bar-label { font-size: 10px; color: var(--text3); }
+
+#toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 999; pointer-events: none; }
+
+.toast { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg3); border-radius: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 32px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); animation: slideLeft 0.3s var(--transition); pointer-events: all; min-width: 280px; }
+
+.toast.success { border-color: rgba(46,204,138,0.3); }
+
+.toast.danger { border-color: rgba(224,82,82,0.3); }
+
+.toast.info { border-color: var(--gold-border); }
+
+@keyframes slideLeft { from { opacity:0; transform: translateX(30px); } to { opacity:1; transform: none; } }
+
+.rt-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--success); padding: 4px 10px; border-radius: 100px; background: rgba(46,204,138,0.1); border: 1px solid rgba(46,204,138,0.25); }
+
+.rt-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); animation: pulse 1.5s infinite; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+@media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+.card-scroll { max-height: 320px; overflow-y: auto; }
+
+.empty-state { text-align: center; padding: 48px 20px; color: var(--text3); }
+
+.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+
+.empty-text { font-size: 15px; margin-bottom: 6px; color: var(--text2); }
+
+.empty-sub { font-size: 13px; }
+
+.gold-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--gold), transparent); margin: 60px 0; opacity: 0.3; }
+
+.api-status { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text3); }
+
+.api-status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+
+.api-status-dot.connected { background: var(--success); }
+
+.connect-banner { background: var(--gold-glow); border: 1px solid var(--gold-border); border-radius: var(--radius); padding: 14px 18px; display: flex; align-items: center; gap: 12px; margin-bottom: 20px; font-size: 13px; }
+
+.connect-banner-icon { font-size: 18px; }
+
+.hash-display { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--gold); background: rgba(201,168,76,0.06); border: 1px solid var(--gold-border); border-radius: 6px; padding: 6px 10px; word-break: break-all; margin-top: 8px; cursor: pointer; transition: background 0.2s; position: relative; }
+
+.hash-display:hover { background: rgba(201,168,76,0.12); }
+
+.hash-display::after { content: '📋 Copy'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 10px; color: var(--text3); font-family: 'DM Sans', sans-serif; }
+
+/* ── NEW: Image Preview ── */
+
+.img-preview-wrap { margin-top: 16px; }
+
+.img-preview { max-width: 200px; max-height: 150px; border-radius: 10px; border: 1px solid var(--gold-border); object-fit: cover; }
+
+/* ── NEW: Search Input ── */
+
+.search-wrap { margin-bottom: 16px; position: relative; }
+
+.search-input { width: 100%; padding: 10px 14px 10px 38px; background: var(--surface); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: all 0.2s; }
+
+.search-input:focus { border-color: var(--gold-border); background: var(--surface2); }
+
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; color: var(--text3); }
+
+/* ── NEW: Keyboard shortcut badge ── */
+
+.kbd { display: inline-flex; align-items: center; justify-content: center; padding: 2px 6px; background: var(--surface2); border: 1px solid rgba(255,255,255,0.12); border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text3); }
+
+/* ── NEW: Delete file button ── */
+
+.btn-delete { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 6px; transition: all 0.2s; }
+
+.btn-delete:hover { background: rgba(224,82,82,0.15); color: var(--danger); }
+
+/* ── NEW: Protection Score Ring ── */
+
+.score-ring { display: flex; align-items: center; gap: 14px; margin: 12px 0; }
+
+.score-circle { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+
+.score-safe { background: rgba(46,204,138,0.15); border: 2px solid var(--success); color: var(--success); }
+
+.score-warn { background: rgba(232,184,71,0.15); border: 2px solid var(--warning); color: var(--warning); }
+
+.score-danger { background: rgba(224,82,82,0.15); border: 2px solid var(--danger); color: var(--danger); }
+
+/* ── NEW: Export Button Area ── */
+
+.export-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ── Bulk Upload Styles ── */
+
+.bulk-file-row { display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border-radius:10px;border:1px solid transparent;transition:all 0.2s; }
+
+.bulk-file-row.done { border-color:rgba(46,204,138,0.2); }
+
+.bulk-file-row.dup { border-color:rgba(224,82,82,0.2); }
+
+.bulk-file-row.error { border-color:rgba(224,82,82,0.3);background:rgba(224,82,82,0.04); }
+
+.bulk-status { width:60px;text-align:center;font-size:11px;font-weight:600; }
+
+/* ── DMCA ── */
+
+#dmca-output { border:1px solid rgba(255,255,255,0.06); }
+
+textarea.form-input { resize:vertical;min-height:80px; }
+
+</style>
+
+</head>
+
+<body>
+
+<canvas id="particles-canvas"></canvas>
+
+<div id="toast-container"></div>
+
+<!-- ════════════════════════════ NAV ════════════════════════════ -->
+
+<nav id="main-nav">
+
+  <div class="nav-logo" onclick="goLanding()">
+
+    <div class="nav-logo-icon">🛡️</div>
+
+    <span class="nav-logo-text">Content<span>Shield</span> AI</span>
+
+  </div>
+
+  <ul class="nav-links" id="nav-public">
+
+    <li><a href="#features" onclick="smoothTo('features')">Features</a></li>
+
+    <li><a href="#how" onclick="smoothTo('how')">How it Works</a></li>
+
+    <li><button onclick="openModal('login')">Sign In</button></li>
+
+    <li><button class="nav-cta" onclick="openModal('register')">Get Started Free</button></li>
+
+  </ul>
+
+  <div class="nav-links" id="nav-private" style="display:none">
+
+    <div class="api-status" style="display:none"><div class="api-status-dot" id="api-dot"></div><span id="api-label">Connecting...</span></div>
+
+    <div style="margin-left:12px" class="rt-badge"><div class="rt-dot"></div>Live</div>
+
+    <span style="font-size:12px;color:var(--text3);margin-left:8px"><kbd class="kbd">Ctrl+U</kbd> Upload</span>
+
+    <div class="nav-avatar" id="nav-avatar" onclick="handleLogout()" title="Click to sign out">U</div>
+
+  </div>
+
+</nav>
+
+<!-- ═══════════════ LOGIN MODAL ═══════════════ -->
+
+<div class="modal-overlay" id="modal-login">
+
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeModal('login')">✕</button>
+
+    <div class="modal-title">Welcome back</div>
+
+    <div class="modal-sub">Sign in to your ContentShield account</div>
+
+    <div id="login-alert" class="alert"></div>
+
+    <div class="form-group">
+
+      <label class="form-label">Email</label>
+
+      <input type="email" class="form-input" id="login-email" placeholder="alice@example.com">
+
+    </div>
+
+    <div class="form-group">
+
+      <label class="form-label">Password</label>
+
+      <input type="password" class="form-input" id="login-pass" placeholder="••••••••">
+
+    </div>
+
+    <button class="btn btn-gold btn-full" onclick="doLogin()" id="login-btn" style="margin-top:8px">Sign In</button>
+
+    <div class="form-switch">Don't have an account? <a onclick="switchModal('login','register')">Create one</a></div>
+
+  </div>
+
+</div>
+
+<!-- ═══════════════ REGISTER MODAL ═══════════════ -->
+
+<div class="modal-overlay" id="modal-register">
+
+  <div class="modal">
+
+    <button class="modal-close" onclick="closeModal('register')">✕</button>
+
+    <div class="modal-title">Create account</div>
+
+    <div class="modal-sub">Join the ContentShield AI platform</div>
+
+    <div id="reg-alert" class="alert"></div>
+
+    <div class="form-group">
+
+      <label class="form-label">Full Name</label>
+
+      <input type="text" class="form-input" id="reg-name" placeholder="Alice Johnson">
+
+    </div>
+
+    <div class="form-group">
+
+      <label class="form-label">Email</label>
+
+      <input type="email" class="form-input" id="reg-email" placeholder="alice@example.com">
+
+    </div>
+
+    <div class="form-group">
+
+      <label class="form-label">Password</label>
+
+      <input type="password" class="form-input" id="reg-pass" placeholder="Min. 6 characters">
+
+    </div>
+
+    <button class="btn btn-gold btn-full" onclick="doRegister()" id="reg-btn" style="margin-top:8px">Create Account</button>
+
+    <div class="form-switch">Already have an account? <a onclick="switchModal('register','login')">Sign in</a></div>
+
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════ LANDING ═══════════════════════════ -->
+
+<div id="view-landing" class="view active">
+
+  <section class="hero">
+
+    <div class="hero-badge"><div class="hero-badge-dot"></div>AI-Powered Content Protection</div>
+
+    <h1 class="hero-title">Protect Your Content<br><span class="gold-text">Across Every Platform</span></h1>
+
+    <p class="hero-sub">ContentShield AI uses advanced SHA-256 fingerprinting and similarity scoring to instantly detect duplicate content across Instagram, YouTube, TikTok, and 5 more platforms.</p>
+
+    <div class="hero-actions">
+
+      <button class="btn btn-gold" onclick="openModal('register')">🛡️ Start Protecting Free</button>
+
+      <button class="btn btn-ghost" onclick="openModal('login')">Sign In</button>
+
+    </div>
+
+    <div class="hero-stats">
+
+      <div class="hero-stat"><div class="hero-stat-num">99.8%</div><div class="hero-stat-label">Detection Accuracy</div></div>
+
+      <div class="hero-stat"><div class="hero-stat-num">50MB</div><div class="hero-stat-label">Max File Size</div></div>
+
+      <div class="hero-stat"><div class="hero-stat-num">8</div><div class="hero-stat-label">Platforms Monitored</div></div>
+
+      <div class="hero-stat"><div class="hero-stat-num">Real-time</div><div class="hero-stat-label">Socket.IO Alerts</div></div>
+
+    </div>
+
+  </section>
+
+  <div class="gold-divider"></div>
+
+  <!-- FEATURES -->
+
+  <section class="section" id="features">
+
+    <div class="section-tag">Capabilities</div>
+
+    <h2 class="section-title">Everything to protect<br>your digital content</h2>
+
+    <p class="section-sub">From instant fingerprinting to cross-platform duplicate detection, ContentShield AI has you covered.</p>
+
+    <div class="features-grid">
+
+      <div class="feature-card"><div class="feature-icon">🔐</div><div class="feature-title">SHA-256 Fingerprinting</div><div class="feature-desc">Every uploaded file gets a unique cryptographic fingerprint. Deterministic, collision-resistant, and lightning fast.</div></div>
+
+      <div class="feature-card"><div class="feature-icon">🔍</div><div class="feature-title">Similarity Detection</div><div class="feature-desc">Goes beyond exact matches. Our nibble-level scoring catches near-duplicate content with configurable thresholds.</div></div>
+
+      <div class="feature-card"><div class="feature-icon">⚡</div><div class="feature-title">Real-Time Alerts</div><div class="feature-desc">Socket.IO integration means you're notified the instant a duplicate is found — no polling, no delays.</div></div>
+
+      <div class="feature-card"><div class="feature-icon">☁️</div><div class="feature-title">Cloudinary + Local</div><div class="feature-desc">Flexible storage options. Use Cloudinary CDN for production or local disk for development. Switch with one env variable.</div></div>
+
+      <div class="feature-card"><div class="feature-icon">📊</div><div class="feature-title">Rich Analytics</div><div class="feature-desc">Track uploads, detection rates, accuracy scores, file type breakdowns, and platform distribution in one dashboard.</div></div>
+
+      <div class="feature-card"><div class="feature-icon">🌐</div><div class="feature-title">8 Platforms</div><div class="feature-desc">Monitor content across Instagram, Twitter, Facebook, YouTube, TikTok, LinkedIn, Pinterest, and Reddit simultaneously.</div></div>
+
+    </div>
+
+  </section>
+
+  <div class="gold-divider"></div>
+
+  <!-- HOW IT WORKS -->
+
+  <section class="section" id="how">
+
+    <div class="section-tag">Process</div>
+
+    <h2 class="section-title">Three steps to total<br><span style="color:var(--gold)">content security</span></h2>
+
+    <div class="how-steps">
+
+      <div class="how-step"><div class="how-step-num">01</div><div class="how-step-title">Upload Your File</div><div class="how-step-desc">Drag & drop images, videos, audio, or PDFs up to 50MB. Our API accepts multipart form data instantly.</div></div>
+
+      <div class="how-step"><div class="how-step-num">02</div><div class="how-step-title">Auto Fingerprinting</div><div class="how-step-desc">ContentShield generates a SHA-256 hash and runs similarity scoring against all files in your vault.</div></div>
+
+      <div class="how-step"><div class="how-step-num">03</div><div class="how-step-title">Instant Detection</div><div class="how-step-desc">Get real-time duplicate alerts with platform attribution and similarity percentages. Take action immediately.</div></div>
+
+      <div class="how-step"><div class="how-step-num">04</div><div class="how-step-title">Analytics & Reports</div><div class="how-step-desc">Review your detection history, accuracy metrics, and platform distribution in your analytics dashboard.</div></div>
+
+    </div>
+
+  </section>
+
+  <!-- CTA -->
+
+  <section class="section" style="text-align:center;padding-bottom:120px">
+
+    <div style="background: var(--gold-glow); border: 1px solid var(--gold-border); border-radius: var(--radius-xl); padding: 60px 40px;">
+
+      <div class="section-tag" style="display:inline-block">Start Today</div>
+
+      <h2 class="section-title" style="margin-top:8px">Ready to shield your content?</h2>
+
+      <p class="section-sub" style="margin: 0 auto 32px">Join creators and teams who trust ContentShield AI to protect their digital assets.</p>
+
+      <button class="btn btn-gold" style="font-size:16px;padding:16px 36px" onclick="openModal('register')">🛡️ Get Started — It's Free</button>
+
+    </div>
+
+  </section>
+
+  <footer>Built with ❤️ by <strong>sudhanshu8540</strong> · ContentShield AI &copy; 2026 · MIT License</footer>
+
+</div>
+
+<!-- ═══════════════════════════ DASHBOARD ═══════════════════════════ -->
+
+<div id="view-dashboard" class="view">
+
+  <div class="dashboard-inner">
+
+    <aside class="sidebar">
+
+      <div class="sidebar-section">
+
+        <div class="sidebar-label">Main</div>
+
+        <button class="sidebar-item active" onclick="showPage('overview',this)"><span class="sidebar-icon">📊</span> Overview</button>
+
+        <button class="sidebar-item" onclick="showPage('upload',this)"><span class="sidebar-icon">📤</span> Upload File</button>
+
+        <button class="sidebar-item" onclick="showPage('files',this)"><span class="sidebar-icon">🗂️</span> My Files</button>
+
+      </div>
+
+      <div class="sidebar-section">
+
+        <div class="sidebar-label">Detection</div>
+
+        <button class="sidebar-item" onclick="showPage('detections',this)"><span class="sidebar-icon">🔍</span> Detections <span class="sidebar-badge" id="dup-count">0</span></button>
+
+        <button class="sidebar-item" onclick="showPage('analytics',this)"><span class="sidebar-icon">📈</span> Analytics</button>
+
+        <button class="sidebar-item" onclick="showPage('fingerprint',this)"><span class="sidebar-icon">🔐</span> Auto Fingerprinting</button>
+
+        <button class="sidebar-item" onclick="showPage('instant',this)"><span class="sidebar-icon">⚡</span> Instant Detection</button>
+
+        <button class="sidebar-item" onclick="showPage('realtimealerts',this)"><span class="sidebar-icon">🔔</span> Real-Time Alerts</button>
+
+        <button class="sidebar-item" onclick="showPage('platforms',this)"><span class="sidebar-icon">🌐</span> 8 Platforms</button>
+
+        <button class="sidebar-item" onclick="showPage('cloudinary',this)"><span class="sidebar-icon">☁️</span> Cloudinary CDN</button>
+
+      </div>
+
+      <div class="sidebar-section">
+
+        <div class="sidebar-label">Tools</div>
+
+        <button class="sidebar-item" onclick="showPage('bulk',this)"><span class="sidebar-icon">📦</span> Bulk Upload</button>
+
+        <button class="sidebar-item" onclick="showPage('dmca',this)"><span class="sidebar-icon">⚖️</span> DMCA Takedown</button>
+
+      </div>
+
+      <div class="sidebar-section">
+
+        <div class="sidebar-label">Account</div>
+
+        <button class="sidebar-item" onclick="handleLogout()"><span class="sidebar-icon">🚪</span> Sign Out</button>
+
+      </div>
+
+    </aside>
+
+    <main class="main-content">
+
+      <!-- ── OVERVIEW PAGE ── -->
+
+      <div class="page active" id="page-overview">
+
+        <div class="page-header">
+
+          <div>
+
+            <div class="page-title">Good day, <span id="user-greeting" style="color:var(--gold)">User</span> 👋</div>
+
+            <div class="page-sub">Here's your ContentShield AI overview</div>
+
+          </div>
+
+          <button class="btn btn-gold btn-sm" onclick="showPage('upload', document.querySelectorAll('.sidebar-item')[1])">+ Upload File</button>
+
+        </div>
+
+        <div class="stats-grid">
+
+          <div class="stat-card"><div class="stat-card-label">🗂️ Total Files</div><div class="stat-card-value" id="stat-files">0</div><div class="stat-card-trend">↑ 12 this week</div></div>
+
+          <div class="stat-card gold-accent"><div class="stat-card-label">🔍 Detections</div><div class="stat-card-value" id="stat-detections">0</div><div class="stat-card-trend">↑ 5 today</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">⚠️ Duplicates</div><div class="stat-card-value" id="stat-dups">0</div><div class="stat-card-trend down">Needs attention</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">🎯 Accuracy</div><div class="stat-card-value" id="stat-acc">0%</div><div class="stat-card-trend">↑ 3% vs last month</div></div>
+
+        </div>
+
+        <div class="grid-2">
+
+          <div class="card">
+
+            <div class="card-header"><div><div class="card-title">Uploads — Last 7 Days</div><div class="card-sub">Daily file upload volume</div></div></div>
+
+            <div class="bar-chart" id="uploads-bar-chart"></div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-header"><div><div class="card-title">Platform Distribution</div><div class="card-sub">Where duplicates were found</div></div></div>
+
+            <div id="platform-list"></div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-header">
+
+            <div><div class="card-title">Recent Activity</div></div>
+
+            <div class="rt-badge"><div class="rt-dot"></div>Real-time</div>
+
+          </div>
+
+          <div class="activity-feed" id="activity-feed"></div>
+
+        </div>
+
+      </div>
+
+      <!-- ── UPLOAD PAGE ── -->
+
+      <div class="page" id="page-upload">
+
+        <div class="page-header">
+
+          <div>
+
+            <div class="page-title">Upload File</div>
+
+            <div class="page-sub">Upload a file to fingerprint and detect duplicates automatically</div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="upload-zone" id="upload-zone">
+
+            <input type="file" id="file-input" accept="image/*,video/*,audio/*,.pdf">
+
+            <div class="upload-icon" id="upload-zone-icon">📁</div>
+
+            <div class="upload-title" id="upload-zone-title">Drop your file here</div>
+
+            <div class="upload-sub">or click to browse from your computer</div>
+
+            <button class="btn btn-gold" id="upload-choose-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Choose File</button>
+
+            <div class="upload-types">
+
+              <span class="upload-type-tag">JPG / PNG / GIF / WEBP</span>
+
+              <span class="upload-type-tag">MP4 / WEBM</span>
+
+              <span class="upload-type-tag">MP3 / WAV / OGG</span>
+
+              <span class="upload-type-tag">PDF</span>
+
+              <span class="upload-type-tag">MAX 50 MB</span>
+
+            </div>
+
+            <!-- NEW: Image preview area -->
+
+            <div class="img-preview-wrap" id="img-preview-wrap" style="display:none">
+
+              <img id="img-preview" class="img-preview" src="" alt="Preview">
+
+            </div>
+
+          </div>
+
+          <div class="upload-progress" id="upload-progress">
+
+            <div class="progress-file" id="progress-file">
+
+              <div class="progress-file-icon" id="progress-icon">📄</div>
+
+              <div class="progress-info">
+
+                <div class="progress-name" id="progress-name">filename.jpg</div>
+
+                <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+
+              </div>
+
+              <div class="progress-pct" id="progress-pct">0%</div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Result card -->
+
+        <div class="card" id="upload-result" style="display:none">
+
+          <div class="card-header">
+
+            <div class="card-title">Detection Result</div>
+
+            <div id="result-badge"></div>
+
+          </div>
+
+          <div id="result-content"></div>
+
+        </div>
+
+      </div>
+
+      <!-- ── FILES PAGE ── -->
+
+      <div class="page" id="page-files">
+
+        <div class="page-header">
+
+          <div><div class="page-title">My Files</div><div class="page-sub">All uploaded files in your vault</div></div>
+
+          <button class="btn btn-gold btn-sm" onclick="loadFiles()">↻ Refresh</button>
+
+        </div>
+
+        <!-- NEW: Search bar -->
+
+        <div class="search-wrap">
+
+          <span class="search-icon">🔍</span>
+
+          <input type="text" class="search-input" id="file-search" placeholder="Search files by name..." oninput="filterFiles()">
+
+        </div>
+
+        <div class="card">
+
+          <div class="file-list card-scroll" id="file-list">
+
+            <div class="empty-state"><div class="empty-icon">🗂️</div><div class="empty-text">No files yet</div><div class="empty-sub">Upload a file to get started</div></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ── DETECTIONS PAGE ── -->
+
+      <div class="page" id="page-detections">
+
+        <div class="page-header">
+
+          <div><div class="page-title">Detections</div><div class="page-sub">Duplicate detection results across all your files</div></div>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+
+            <label class="form-label" style="margin:0"><input type="checkbox" id="dups-only" onchange="loadDetections()"> Duplicates Only</label>
+
+            <!-- NEW: Export button -->
+
+            <button class="btn btn-success btn-sm" onclick="exportDetections()">📥 Export JSON</button>
+
+            <button class="btn btn-ghost btn-sm" onclick="loadDetections()">↻ Refresh</button>
+
+          </div>
+
+        </div>
+
+        <div id="detection-list">
+
+          <div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No detections yet</div><div class="empty-sub">Upload a file to trigger detection</div></div>
+
+        </div>
+
+      </div>
+
+      <!-- ── ANALYTICS PAGE ── -->
+
+      <div class="page" id="page-analytics">
+
+        <div class="page-header">
+
+          <div><div class="page-title">Analytics</div><div class="page-sub">Performance metrics and insights</div></div>
+
+          <div style="display:flex;gap:8px">
+
+            <!-- NEW: Export report button -->
+
+            <button class="btn btn-success btn-sm" onclick="exportAnalyticsReport()">📄 Export Report</button>
+
+            <button class="btn btn-ghost btn-sm" onclick="loadAnalytics()">↻ Refresh</button>
+
+          </div>
+
+        </div>
+
+        <div class="stats-grid">
+
+          <div class="stat-card"><div class="stat-card-label">📁 Files Uploaded</div><div class="stat-card-value" id="a-files">—</div></div>
+
+          <div class="stat-card gold-accent"><div class="stat-card-label">🔍 Total Detections</div><div class="stat-card-value" id="a-detections">—</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">⚠️ Duplicates Found</div><div class="stat-card-value" id="a-dups">—</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">🎯 Accuracy Score</div><div class="stat-card-value" id="a-acc">—</div></div>
+
+        </div>
+
+        <div class="grid-2">
+
+          <div class="card"><div class="card-header"><div class="card-title">File Type Breakdown</div></div><div id="filetype-breakdown"></div></div>
+
+          <div class="card"><div class="card-header"><div class="card-title">Uploads Last 7 Days</div></div><div class="bar-chart" id="analytics-bar-chart"></div></div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-header"><div class="card-title">Platform Detection Distribution</div></div>
+
+          <div id="analytics-platforms" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:4px"></div>
+
+        </div>
+
+      </div>
+
+      <!-- ── CLOUDINARY CDN PAGE ── -->
+
+      <div class="page" id="page-cloudinary">
+
+        <div class="page-header">
+
+          <div><div class="page-title">Cloudinary CDN</div><div class="page-sub">Manage cloud-stored assets and CDN transformations</div></div>
+
+          <div style="display:flex;gap:8px">
+
+            <button class="btn btn-ghost btn-sm" onclick="loadCloudinaryStats()">↻ Refresh</button>
+
+          </div>
+
+        </div>
+
+        <div class="stats-grid" id="cloudinary-stats">
+
+          <div class="stat-card"><div class="stat-card-label">☁️ Cloud Assets</div><div class="stat-card-value" id="cld-assets">—</div></div>
+
+          <div class="stat-card gold-accent"><div class="stat-card-label">💾 Storage Used</div><div class="stat-card-value" id="cld-storage">—</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">🌐 Bandwidth</div><div class="stat-card-value" id="cld-bw">—</div></div>
+
+          <div class="stat-card"><div class="stat-card-label">⚡ CDN Hits</div><div class="stat-card-value" id="cld-hits">—</div></div>
+
+        </div>
+
+        <div class="grid-2">
+
+          <div class="card">
+
+            <div class="card-header"><div class="card-title">🔧 CDN Transformations</div><div class="card-sub">Apply real-time Cloudinary transforms</div></div>
+
+            <div style="margin-bottom:14px">
+
+              <label class="form-label">Source URL</label>
+
+              <input type="text" class="form-input" id="cld-url-input" placeholder="https://res.cloudinary.com/demo/image/upload/sample.jpg">
+
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+
+              <div>
+
+                <label class="form-label">Width (px)</label>
+
+                <input type="number" class="form-input" id="cld-width" placeholder="800" value="800">
+
+              </div>
+
+              <div>
+
+                <label class="form-label">Height (px)</label>
+
+                <input type="number" class="form-input" id="cld-height" placeholder="600" value="600">
+
+              </div>
+
+            </div>
+
+            <div style="margin-bottom:14px">
+
+              <label class="form-label">Crop Mode</label>
+
+              <select class="form-input" id="cld-crop">
+
+                <option value="fill">fill — Cover crop</option>
+
+                <option value="fit">fit — Letterbox</option>
+
+                <option value="scale">scale — Resize only</option>
+
+                <option value="thumb">thumb — Smart thumbnail</option>
+
+                <option value="crop">crop — Strict crop</option>
+
+              </select>
+
+            </div>
+
+            <div style="margin-bottom:14px">
+
+              <label class="form-label">Format</label>
+
+              <select class="form-input" id="cld-format">
+
+                <option value="auto">auto (WebP/AVIF)</option>
+
+                <option value="jpg">JPEG</option>
+
+                <option value="png">PNG</option>
+
+                <option value="webp">WebP</option>
+
+                <option value="avif">AVIF</option>
+
+              </select>
+
+            </div>
+
+            <div style="margin-bottom:16px">
+
+              <label class="form-label">Quality</label>
+
+              <input type="range" id="cld-quality" min="30" max="100" value="80" style="width:100%;accent-color:var(--gold)" oninput="document.getElementById('cld-quality-val').textContent=this.value+'%'">
+
+              <div style="font-size:12px;color:var(--gold);margin-top:4px" id="cld-quality-val">80%</div>
+
+            </div>
+
+            <button class="btn btn-gold" onclick="buildCloudinaryUrl()" style="width:100%">⚡ Build Transform URL</button>
+
+            <div id="cld-result" style="margin-top:14px;display:none">
+
+              <div class="form-label">Generated URL</div>
+
+              <div class="hash-display" id="cld-result-url" onclick="copyCldUrl()" title="Click to copy">—</div>
+
+              <div id="cld-preview-img" style="margin-top:10px"></div>
+
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-header"><div class="card-title">📂 Cloud Asset Library</div><div class="card-sub">Recent uploads synced to Cloudinary</div></div>
+
+            <div id="cld-asset-list" style="display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto"></div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-header"><div class="card-title">🔗 Cloudinary Config</div><div class="card-sub">Environment variables needed for your backend</div></div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+
+            <div>
+
+              <label class="form-label">Cloud Name</label>
+
+              <div class="hash-display" style="cursor:default">CLOUDINARY_CLOUD_NAME</div>
+
+            </div>
+
+            <div>
+
+              <label class="form-label">API Key</label>
+
+              <div class="hash-display" style="cursor:default">CLOUDINARY_API_KEY</div>
+
+            </div>
+
+            <div>
+
+              <label class="form-label">API Secret</label>
+
+              <div class="hash-display" style="cursor:default">CLOUDINARY_API_SECRET</div>
+
+            </div>
+
+          </div>
+
+          <div style="margin-top:16px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid var(--gold-border);border-radius:10px;font-size:13px;color:var(--text2)">
+
+            💡 Set <code style="font-family:'JetBrains Mono',monospace;color:var(--gold)">STORAGE_TYPE=cloudinary</code> in your <code style="font-family:'JetBrains Mono',monospace;color:var(--gold)">.env</code> to enable Cloudinary CDN storage. Defaults to local disk storage.
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ── BULK UPLOAD PAGE ── -->
+
+      <div class="page" id="page-bulk">
+
+        <div class="page-header">
+
+          <div><div class="page-title">Bulk Upload</div><div class="page-sub">Upload and fingerprint multiple files at once</div></div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="upload-zone" id="bulk-drop-zone" onclick="document.getElementById('bulk-file-input').click()">
+
+            <input type="file" id="bulk-file-input" multiple accept="image/*,video/*,audio/*,.pdf" style="display:none" onchange="handleBulkSelect(this.files)">
+
+            <div class="upload-icon">📦</div>
+
+            <div class="upload-title">Drop multiple files here</div>
+
+            <div class="upload-sub">Select up to 20 files for batch processing</div>
+
+            <div class="upload-types">
+
+              <span class="upload-type-tag">Images</span>
+
+              <span class="upload-type-tag">Videos</span>
+
+              <span class="upload-type-tag">Audio</span>
+
+              <span class="upload-type-tag">PDFs</span>
+
+              <span class="upload-type-tag">MAX 20 FILES</span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div id="bulk-queue" style="display:none">
+
+          <div class="card">
+
+            <div class="card-header">
+
+              <div><div class="card-title">Upload Queue</div><div class="card-sub" id="bulk-queue-sub">0 files ready</div></div>
+
+              <div style="display:flex;gap:8px">
+
+                <button class="btn btn-ghost btn-sm" onclick="clearBulkQueue()">Clear</button>
+
+                <button class="btn btn-gold btn-sm" id="bulk-start-btn" onclick="startBulkUpload()">▶ Start Upload</button>
+
+              </div>
+
+            </div>
+
+            <div id="bulk-file-list" style="display:flex;flex-direction:column;gap:8px"></div>
+
+            <div style="margin-top:16px;padding:12px 16px;background:var(--surface);border-radius:10px;display:flex;gap:16px;font-size:13px" id="bulk-summary" style="display:none">
+
+              <span>✅ <span id="bulk-done">0</span> done</span>
+
+              <span>⚠️ <span id="bulk-dups">0</span> duplicates</span>
+
+              <span>❌ <span id="bulk-errors">0</span> errors</span>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ── DMCA TAKEDOWN PAGE ── -->
+
+      <div class="page" id="page-dmca">
+
+        <div class="page-header">
+
+          <div><div class="page-title">DMCA Takedown</div><div class="page-sub">Generate and track copyright takedown requests</div></div>
+
+          <button class="btn btn-success btn-sm" onclick="exportDmcaLog()">📥 Export Log</button>
+
+        </div>
+
+        <div class="grid-2">
+
+          <div class="card">
+
+            <div class="card-header"><div class="card-title">📝 Generate Takedown Notice</div></div>
+
+            <div class="form-group">
+
+              <label class="form-label">Your Full Name / Organization</label>
+
+              <input type="text" class="form-input" id="dmca-name" placeholder="Alice Johnson / Acme Corp">
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label">Your Email</label>
+
+              <input type="email" class="form-input" id="dmca-email" placeholder="legal@example.com">
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label">Original Content URL</label>
+
+              <input type="text" class="form-input" id="dmca-original" placeholder="https://yourwebsite.com/original-content">
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label">Infringing Content URL</label>
+
+              <input type="text" class="form-input" id="dmca-infringing" placeholder="https://instagram.com/p/example">
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label">Platform</label>
+
+              <select class="form-input" id="dmca-platform">
+
+                <option>Instagram</option><option>YouTube</option><option>TikTok</option>
+
+                <option>Twitter</option><option>Facebook</option><option>LinkedIn</option>
+
+                <option>Pinterest</option><option>Reddit</option>
+
+              </select>
+
+            </div>
+
+            <div class="form-group">
+
+              <label class="form-label">Description of Infringement</label>
+
+              <textarea class="form-input" id="dmca-desc" rows="3" placeholder="Describe how your content was copied..."></textarea>
+
+            </div>
+
+            <button class="btn btn-gold" onclick="generateDmca()" style="width:100%">⚖️ Generate DMCA Notice</button>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-header"><div class="card-title">📋 Generated Notice</div><div class="card-sub">Ready to send to platform legal team</div></div>
+
+            <div id="dmca-output" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);background:var(--bg3);border-radius:10px;padding:16px;min-height:200px;white-space:pre-wrap;line-height:1.7">Fill in the form and click Generate to create your DMCA notice...</div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+
+              <button class="btn btn-ghost btn-sm" onclick="copyDmca()">📋 Copy</button>
+
+              <button class="btn btn-success btn-sm" onclick="downloadDmca()">💾 Download .txt</button>
+
+              <button class="btn btn-ghost btn-sm" onclick="saveDmcaLog()">📁 Save to Log</button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <div class="card-header"><div class="card-title">📜 Takedown History</div><div class="card-sub">Previously generated notices</div></div>
+
+          <div id="dmca-log-list">
+
+            <div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-text">No notices yet</div><div class="empty-sub">Generate a DMCA notice to get started</div></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- ── AUTO FINGERPRINTING PAGE ── -->
+      <div class="page" id="page-fingerprint">
+        <div class="page-header">
+          <div><div class="page-title">Auto Fingerprinting</div><div class="page-sub">SHA-256 cryptographic fingerprint generated for every file you upload</div></div>
+          <button class="btn btn-gold btn-sm" onclick="showPage('upload', document.querySelectorAll('.sidebar-item')[1])">+ Upload File</button>
+        </div>
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card gold-accent"><div class="stat-card-label">🔐 Fingerprints Generated</div><div class="stat-card-value" id="fp-total">—</div><div class="stat-card-trend">All time</div></div>
+          <div class="stat-card"><div class="stat-card-label">⚡ Avg. Hash Time</div><div class="stat-card-value">~12ms</div><div class="stat-card-trend">Per file</div></div>
+          <div class="stat-card"><div class="stat-card-label">🛡️ Algorithm</div><div class="stat-card-value" style="font-size:20px">SHA-256</div><div class="stat-card-trend">Collision-resistant</div></div>
+          <div class="stat-card"><div class="stat-card-label">📁 File Types</div><div class="stat-card-value" style="font-size:20px">Any</div><div class="stat-card-trend">Images, video, audio, PDF</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🔐 How It Works</div></div>
+            <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px">
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--gold-glow);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;flex-shrink:0">1</div>
+                <div><div style="font-weight:600;margin-bottom:4px">File Upload</div><div style="color:var(--text2);font-size:13px">You drag & drop or select any file up to 50MB. ContentShield accepts images, videos, audio files, and PDFs.</div></div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--gold-glow);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;flex-shrink:0">2</div>
+                <div><div style="font-weight:600;margin-bottom:4px">SHA-256 Hashing</div><div style="color:var(--text2);font-size:13px">Our backend reads the raw bytes and runs them through SHA-256, producing a unique 64-character hex digest in milliseconds.</div></div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--gold-glow);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;flex-shrink:0">3</div>
+                <div><div style="font-weight:600;margin-bottom:4px">Nibble-Level Similarity</div><div style="color:var(--text2);font-size:13px">Beyond exact matches, we compare nibble patterns to catch near-duplicates — even re-encoded or slightly edited versions.</div></div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:flex-start">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--gold-glow);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:700;flex-shrink:0">4</div>
+                <div><div style="font-weight:600;margin-bottom:4px">Stored in Vault</div><div style="color:var(--text2);font-size:13px">The fingerprint is saved alongside your file metadata. Every future upload is instantly compared against your full vault.</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">🧪 Live Hash Generator</div><div class="card-sub">Test fingerprinting on any text or filename</div></div>
+            <div class="form-group">
+              <label class="form-label">Enter text or filename to fingerprint</label>
+              <input type="text" class="form-input" id="fp-input" placeholder="e.g. my-photo.jpg or any text..." oninput="liveFingerprint()">
+            </div>
+            <div style="background:var(--bg3);border-radius:10px;padding:16px;margin-top:8px">
+              <div style="font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">SHA-256 Output</div>
+              <div id="fp-output" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);word-break:break-all;line-height:1.8">— type something above —</div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="copyFingerprint()">📋 Copy Hash</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fp-input').value='';document.getElementById('fp-output').textContent='— type something above —'">🗑️ Clear</button>
+            </div>
+            <div style="margin-top:20px;padding:14px;background:rgba(201,168,76,0.06);border:1px solid var(--gold-border);border-radius:10px">
+              <div style="font-size:13px;color:var(--gold);font-weight:600;margin-bottom:6px">💡 Why SHA-256?</div>
+              <div style="font-size:13px;color:var(--text2);line-height:1.6">SHA-256 is deterministic — the same file always produces the same hash. It's collision-resistant, meaning two different files will never produce the same fingerprint. Used by Bitcoin, SSL certificates, and major cloud providers.</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="card-header"><div class="card-title">📋 Recent Fingerprints</div><div class="card-sub">Latest files fingerprinted in your vault</div></div>
+          <div id="fp-file-list">
+            <div class="empty-state"><div class="empty-icon">🔐</div><div class="empty-text">No fingerprints yet</div><div class="empty-sub">Upload a file to generate your first fingerprint</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INSTANT DETECTION PAGE ── -->
+      <div class="page" id="page-instant">
+        <div class="page-header">
+          <div><div class="page-title">Instant Detection</div><div class="page-sub">Real-time duplicate alerts with platform attribution and similarity scores</div></div>
+          <button class="btn btn-gold btn-sm" onclick="showPage('upload', document.querySelectorAll('.sidebar-item')[1])">+ Upload & Detect</button>
+        </div>
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card gold-accent"><div class="stat-card-label">🎯 Detection Accuracy</div><div class="stat-card-value">98.4%</div><div class="stat-card-trend">↑ Above industry avg</div></div>
+          <div class="stat-card"><div class="stat-card-label">⏱️ Detection Speed</div><div class="stat-card-value" style="font-size:22px">&lt;200ms</div><div class="stat-card-trend">Average response time</div></div>
+          <div class="stat-card"><div class="stat-card-label">🔍 Total Scanned</div><div class="stat-card-value" id="inst-scanned">—</div><div class="stat-card-trend">Files in your vault</div></div>
+          <div class="stat-card"><div class="stat-card-label">🚨 Duplicates Found</div><div class="stat-card-value" id="inst-dups">—</div><div class="stat-card-trend">Across all platforms</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><div class="card-title">⚙️ Detection Settings</div><div class="card-sub">Configure sensitivity thresholds</div></div>
+            <div class="form-group">
+              <label class="form-label">Similarity Threshold — <span id="threshold-val" style="color:var(--gold)">75%</span></label>
+              <input type="range" min="50" max="99" value="75" style="width:100%;accent-color:var(--gold);margin-top:8px" oninput="document.getElementById('threshold-val').textContent=this.value+'%'">
+              <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px"><span>50% — More sensitive</span><span>99% — Exact only</span></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Detection Scope</label>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" checked style="accent-color:var(--gold)"> <span>Exact hash match (SHA-256)</span></label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" checked style="accent-color:var(--gold)"> <span>Near-duplicate (nibble scoring)</span></label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" checked style="accent-color:var(--gold)"> <span>Cross-platform attribution</span></label>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px"><input type="checkbox" style="accent-color:var(--gold)"> <span>Metadata fingerprinting</span></label>
+              </div>
+            </div>
+            <button class="btn btn-gold" style="width:100%;margin-top:8px" onclick="saveDetectionSettings()">💾 Save Settings</button>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">📡 Detection Pipeline</div><div class="card-sub">How a match is found in real time</div></div>
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;font-size:16px">📤</div>
+                <div><div style="font-size:14px;font-weight:500">File Received</div><div style="font-size:12px;color:var(--text3)">API accepts multipart upload instantly</div></div>
+                <div style="margin-left:auto;font-size:11px;color:var(--success)">0ms</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;font-size:16px">🔐</div>
+                <div><div style="font-size:14px;font-weight:500">Fingerprint Generated</div><div style="font-size:12px;color:var(--text3)">SHA-256 hash computed from raw bytes</div></div>
+                <div style="margin-left:auto;font-size:11px;color:var(--success)">~12ms</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;font-size:16px">🗄️</div>
+                <div><div style="font-size:14px;font-weight:500">Vault Scan</div><div style="font-size:12px;color:var(--text3)">Compared against all stored fingerprints</div></div>
+                <div style="margin-left:auto;font-size:11px;color:var(--success)">~80ms</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;font-size:16px">🌐</div>
+                <div><div style="font-size:14px;font-weight:500">Platform Attribution</div><div style="font-size:12px;color:var(--text3)">Match tagged with source platform</div></div>
+                <div style="margin-left:auto;font-size:11px;color:var(--success)">~30ms</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+                <div style="width:32px;height:32px;border-radius:8px;background:rgba(46,204,138,0.12);display:flex;align-items:center;justify-content:center;font-size:16px">🔔</div>
+                <div><div style="font-size:14px;font-weight:500">Alert Fired</div><div style="font-size:12px;color:var(--text3)">Socket.IO pushes alert to your dashboard</div></div>
+                <div style="margin-left:auto;font-size:11px;color:var(--success)">&lt;200ms</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <div class="card-header"><div class="card-title">🚨 Recent Detection Events</div><div class="card-sub">Live log of all detection results</div></div>
+          <div id="instant-detection-log">
+            <div class="empty-state"><div class="empty-icon">⚡</div><div class="empty-text">No detection events yet</div><div class="empty-sub">Upload a file to trigger instant detection</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REAL-TIME ALERTS PAGE ── -->
+      <div class="page" id="page-realtimealerts">
+        <div class="page-header">
+          <div><div class="page-title">Real-Time Alerts</div><div class="page-sub">Socket.IO powered — notified the instant a duplicate is found</div></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div id="socket-status-badge" style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:100px;background:rgba(46,204,138,0.1);border:1px solid rgba(46,204,138,0.25);font-size:12px;font-weight:600;color:var(--success)"><span style="width:7px;height:7px;border-radius:50%;background:var(--success);display:inline-block;animation:pulse 2s infinite"></span> Socket Live</div>
+            <button class="btn btn-ghost btn-sm" onclick="clearAlerts()">🗑️ Clear All</button>
+          </div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card gold-accent"><div class="stat-card-label">🔔 Total Alerts</div><div class="stat-card-value" id="alert-total">0</div><div class="stat-card-trend">Since last clear</div></div>
+          <div class="stat-card"><div class="stat-card-label">🚨 Unread</div><div class="stat-card-value" id="alert-unread">0</div><div class="stat-card-trend">Needs attention</div></div>
+          <div class="stat-card"><div class="stat-card-label">📡 Connection</div><div class="stat-card-value" style="font-size:20px" id="alert-conn-type">Socket.IO</div><div class="stat-card-trend">Real-time push</div></div>
+          <div class="stat-card"><div class="stat-card-label">⚡ Avg. Latency</div><div class="stat-card-value" style="font-size:22px">&lt;50ms</div><div class="stat-card-trend">Alert delivery time</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card" style="grid-column:1/2">
+            <div class="card-header"><div class="card-title">🔔 Alert Feed</div><div class="card-sub">Live incoming duplicate alerts</div></div>
+            <div id="alert-feed" style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto">
+              <div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-text">No alerts yet</div><div class="empty-sub">Alerts appear here instantly when duplicates are detected</div></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div class="card">
+              <div class="card-header"><div class="card-title">⚙️ Alert Preferences</div></div>
+              <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                  <span style="font-size:14px">🚨 Exact Duplicate Alert</span>
+                  <input type="checkbox" checked style="accent-color:var(--gold);width:16px;height:16px">
+                </label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                  <span style="font-size:14px">⚠️ Near-Duplicate Alert</span>
+                  <input type="checkbox" checked style="accent-color:var(--gold);width:16px;height:16px">
+                </label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                  <span style="font-size:14px">📧 Email Notifications</span>
+                  <input type="checkbox" style="accent-color:var(--gold);width:16px;height:16px">
+                </label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                  <span style="font-size:14px">🖥️ Browser Notifications</span>
+                  <input type="checkbox" id="browser-notif-toggle" style="accent-color:var(--gold);width:16px;height:16px" onchange="toggleBrowserNotif(this)">
+                </label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer">
+                  <span style="font-size:14px">🔕 Mute All Alerts</span>
+                  <input type="checkbox" id="mute-alerts" style="accent-color:var(--gold);width:16px;height:16px">
+                </label>
+              </div>
+              <button class="btn btn-gold btn-sm" style="width:100%;margin-top:14px" onclick="saveAlertPrefs()">💾 Save Preferences</button>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">🧪 Test Alert</div><div class="card-sub">Simulate an incoming duplicate alert</div></div>
+              <div class="form-group">
+                <label class="form-label">Platform</label>
+                <select class="form-input" id="test-alert-platform">
+                  <option>Instagram</option><option>TikTok</option><option>YouTube</option>
+                  <option>Twitter</option><option>Facebook</option><option>Reddit</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Similarity Score — <span id="test-sim-val" style="color:var(--gold)">92%</span></label>
+                <input type="range" min="50" max="100" value="92" style="width:100%;accent-color:var(--gold)" oninput="document.getElementById('test-sim-val').textContent=this.value+'%'">
+              </div>
+              <button class="btn btn-gold btn-sm" style="width:100%" onclick="fireTestAlert()">⚡ Fire Test Alert</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 8 PLATFORMS PAGE ── -->
+      <div class="page" id="page-platforms">
+        <div class="page-header">
+          <div><div class="page-title">8 Platforms</div><div class="page-sub">Monitor your content across all major social platforms simultaneously</div></div>
+        </div>
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card gold-accent"><div class="stat-card-label">🌐 Platforms Active</div><div class="stat-card-value">8</div><div class="stat-card-trend">All monitored</div></div>
+          <div class="stat-card"><div class="stat-card-label">📊 Total Detections</div><div class="stat-card-value" id="plat-total-det">—</div><div class="stat-card-trend">Across all platforms</div></div>
+          <div class="stat-card"><div class="stat-card-label">🏆 Top Platform</div><div class="stat-card-value" id="plat-top" style="font-size:18px">Instagram</div><div class="stat-card-trend">Most duplicates found</div></div>
+          <div class="stat-card"><div class="stat-card-label">🔄 Last Scan</div><div class="stat-card-value" id="plat-last-scan" style="font-size:16px">Just now</div><div class="stat-card-trend">Auto-scans on upload</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">
+
+          <div class="card" style="border:1px solid rgba(225,48,108,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888);display:flex;align-items:center;justify-content:center;font-size:22px">📸</div>
+              <div><div style="font-weight:600;font-size:16px">Instagram</div><div style="font-size:12px;color:var(--text3)">Images & Reels monitoring</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-instagram">199</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:85%;background:linear-gradient(90deg,#f09433,#e6683c,#dc2743);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(0,0,0,0.3)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:#000;display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid rgba(255,255,255,0.1)">🎵</div>
+              <div><div style="font-weight:600;font-size:16px">TikTok</div><div style="font-size:12px;color:var(--text3)">Short-form video tracking</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-tiktok">101</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:43%;background:linear-gradient(90deg,#69C9D0,#EE1D52);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(29,161,242,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1DA1F2,#0d8bd9);display:flex;align-items:center;justify-content:center;font-size:22px">🐦</div>
+              <div><div style="font-weight:600;font-size:16px">Twitter / X</div><div style="font-size:12px;color:var(--text3)">Posts & media detection</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-twitter">103</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:44%;background:linear-gradient(90deg,#1DA1F2,#0d8bd9);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(255,0,0,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#FF0000,#cc0000);display:flex;align-items:center;justify-content:center;font-size:22px">▶️</div>
+              <div><div style="font-weight:600;font-size:16px">YouTube</div><div style="font-size:12px;color:var(--text3)">Video & thumbnail scanning</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-youtube">88</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:37%;background:linear-gradient(90deg,#FF0000,#cc0000);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(24,119,242,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#1877F2,#0d6ed4);display:flex;align-items:center;justify-content:center;font-size:22px">👥</div>
+              <div><div style="font-weight:600;font-size:16px">Facebook</div><div style="font-size:12px;color:var(--text3)">Posts, stories & groups</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-facebook">135</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:57%;background:linear-gradient(90deg,#1877F2,#0d6ed4);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(10,102,194,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0A66C2,#004182);display:flex;align-items:center;justify-content:center;font-size:22px">💼</div>
+              <div><div style="font-weight:600;font-size:16px">LinkedIn</div><div style="font-size:12px;color:var(--text3)">Professional content tracking</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-linkedin">47</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:20%;background:linear-gradient(90deg,#0A66C2,#004182);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(230,0,35,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#E60023,#ad081b);display:flex;align-items:center;justify-content:center;font-size:22px">📌</div>
+              <div><div style="font-weight:600;font-size:16px">Pinterest</div><div style="font-size:12px;color:var(--text3)">Image board monitoring</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-pinterest">62</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:26%;background:linear-gradient(90deg,#E60023,#ad081b);border-radius:2px"></div></div>
+          </div>
+
+          <div class="card" style="border:1px solid rgba(255,69,0,0.2)">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+              <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#FF4500,#cc3700);display:flex;align-items:center;justify-content:center;font-size:22px">👽</div>
+              <div><div style="font-weight:600;font-size:16px">Reddit</div><div style="font-size:12px;color:var(--text3)">Posts & reposts tracking</div></div>
+              <div style="margin-left:auto;padding:4px 10px;border-radius:100px;background:rgba(46,204,138,0.12);color:var(--success);font-size:11px;font-weight:600">Active</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text2)">
+              <span>Duplicates found</span><span style="color:var(--text);font-weight:600" id="p-reddit">29</span>
+            </div>
+            <div style="height:4px;background:var(--surface2);border-radius:2px;margin-top:8px"><div style="height:100%;width:12%;background:linear-gradient(90deg,#FF4500,#cc3700);border-radius:2px"></div></div>
+          </div>
+
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 Platform Distribution Overview</div><div class="card-sub">Where your content duplicates are being found</div></div>
+          <div id="platforms-bar-chart" style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Instagram</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:85%;background:linear-gradient(90deg,#f09433,#dc2743);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">199</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Facebook</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:57%;background:linear-gradient(90deg,#1877F2,#0d6ed4);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">135</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Twitter</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:44%;background:linear-gradient(90deg,#1DA1F2,#0d8bd9);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">103</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">TikTok</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:43%;background:linear-gradient(90deg,#69C9D0,#EE1D52);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">101</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">YouTube</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:37%;background:linear-gradient(90deg,#FF0000,#cc0000);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">88</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Pinterest</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:26%;background:linear-gradient(90deg,#E60023,#ad081b);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">62</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">LinkedIn</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:20%;background:linear-gradient(90deg,#0A66C2,#004182);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">47</div></div>
+            <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Reddit</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:12%;background:linear-gradient(90deg,#FF4500,#cc3700);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">29</div></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+  </div>
+
+</div>
+
+<script>
+
+/* ═══════════════════ CONFIG ═══════════════════ */
+
+// FIX: API_BASE ends at /api — no need to add /api again in calls
+
+const API_BASE = 'http://localhost:5000/api';
+
+/* ═══════════════════ STATE ═══════════════════ */
+
+// FIX: Single consistent storage key 'cs_token' used everywhere
+
+let token = localStorage.getItem('cs_token') || null;
+
+let currentUser = JSON.parse(localStorage.getItem('cs_user') || 'null');
+
+let mockFiles = [];
+
+let mockDetections = [];
+
+let socketInstance = null; // FIX: Single socket reference
+
+/* ═══════════════════ PARTICLES ═══════════════════ */
+
+(function initParticles() {
+
+  const canvas = document.getElementById('particles-canvas');
+
+  const ctx = canvas.getContext('2d');
+
+  let W, H, particles = [];
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+
+  resize();
+
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 60; i++) {
+
+    particles.push({ x: Math.random()*W, y: Math.random()*H, vx:(Math.random()-0.5)*0.4, vy:(Math.random()-0.5)*0.4, r:Math.random()*1.5+0.3, alpha:Math.random()*0.4+0.05 });
+
+  }
+
+  function draw() {
+
+    ctx.clearRect(0, 0, W, H);
+
+    particles.forEach(p => {
+
+      p.x += p.vx; p.y += p.vy;
+
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+
+      ctx.fillStyle = `rgba(201,168,76,${p.alpha})`; ctx.fill();
+
+    });
+
+    for (let i = 0; i < particles.length; i++) {
+
+      for (let j = i+1; j < particles.length; j++) {
+
+        const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist < 100) {
+
+          ctx.beginPath(); ctx.moveTo(particles[i].x, particles[i].y); ctx.lineTo(particles[j].x, particles[j].y);
+
+          ctx.strokeStyle = `rgba(201,168,76,${0.08*(1-dist/100)})`; ctx.lineWidth = 0.5; ctx.stroke();
+
+        }
+
+      }
+
+    }
+
+    requestAnimationFrame(draw);
+
+  }
+
+  draw();
+
+})();
+
+/* ═══════════════════ TOAST ═══════════════════ */
+
+function toast(msg, type='info', duration=3500) {
+
+  const icons = { success:'✅', danger:'❌', info:'🛡️', warning:'⚠️' };
+
+  const el = document.createElement('div');
+
+  el.className = `toast ${type}`;
+
+  el.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+
+  document.getElementById('toast-container').appendChild(el);
+
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(30px)'; el.style.transition='0.3s'; setTimeout(()=>el.remove(),300); }, duration);
+
+}
+
+/* ═══════════════════ MODAL ═══════════════════ */
+
+function openModal(id) { document.getElementById(`modal-${id}`).classList.add('open'); }
+
+function closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('open'); }
+
+function switchModal(from, to) { closeModal(from); setTimeout(()=>openModal(to), 200); }
+
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+/* ═══════════════════ VIEWS ═══════════════════ */
+
+function showView(id) {
+
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+  document.getElementById(`view-${id}`).classList.add('active');
+
+}
+
+function goLanding() { showView('landing'); updateNav(false); }
+
+function showPage(name, el) {
+
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+  document.getElementById(`page-${name}`).classList.add('active');
+
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+
+  if(el) el.classList.add('active');
+
+  if(name==='files') loadFiles();
+
+  if(name==='detections') loadDetections();
+
+  if(name==='analytics') loadAnalytics();
+
+  if(name==='cloudinary') loadCloudinaryStats();
+
+  if(name==='overview') loadOverview();
+
+}
+
+/* ═══════════════════ NAV ═══════════════════ */
+
+function updateNav(loggedIn) {
+
+  document.getElementById('nav-public').style.display = loggedIn ? 'none' : 'flex';
+
+  document.getElementById('nav-private').style.display = loggedIn ? 'flex' : 'none';
+
+  if(loggedIn && currentUser) {
+
+    document.getElementById('nav-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+  }
+
+}
+
+function smoothTo(id) { document.getElementById(id)?.scrollIntoView({behavior:'smooth'}); }
+
+/* ═══════════════════ API ═══════════════════ */
+
+async function api(path, opts={}) {
+
+  const headers = { 'Content-Type': 'application/json', ...(token ? {Authorization:`Bearer ${token}`}:{}) };
+
+  if(opts.body instanceof FormData) delete headers['Content-Type'];
+
+  try {
+
+    const r = await fetch(`${API_BASE}${path}`, {headers, ...opts});
+
+    const data = await r.json();
+
+    if(!r.ok) throw new Error(data.message || 'Request failed');
+
+    return data;
+
+  } catch(e) {
+
+    if(e.message==='Failed to fetch') throw new Error('Cannot connect to backend');
+
+    throw e;
+
+  }
+
+}
+
+/* ─── API Status ─── */
+
+// FIX: Correct URL — no double /api/api/health
+
+async function checkApiStatus() {
+
+  const dot = document.getElementById('api-dot');
+
+  const label = document.getElementById('api-label');
+
+  try {
+
+    const r = await fetch('http://localhost:5000/api/health', { signal: AbortSignal.timeout(2000) });
+
+    if(r.ok) {
+
+      dot.className = 'api-status-dot connected';
+
+      label.textContent = 'Connected';
+
+      window.__backendOnline = true;
+
+    } else { throw new Error('not ok'); }
+
+  } catch {
+
+    dot.className = 'api-status-dot';
+
+    label.textContent = 'Demo Mode';
+
+    window.__backendOnline = false;
+
+  }
+
+}
+
+/* ─── Socket ─── */
+
+// FIX: Single socket connection — not duplicated
+
+function initSocket() {
+
+  if(socketInstance) return;
+
+  function tryConnect() {
+
+    if(typeof io === 'undefined') {
+
+      document.addEventListener('socketio-ready', tryConnect, { once: true });
+
+      return;
+
+    }
+
+    // If backend is offline or mock mode — use a silent stub, NO real connection
+
+    if(!window.__backendOnline || window.__socketMock) {
+
+      socketInstance = {
+
+        on: function() {},
+
+        off: function() {},
+
+        emit: function() {},
+
+        disconnect: function() {},
+
+        connected: false
+
+      };
+
+      // Backend offline — silent stub, no console noise
+
+      return;
+
+    }
+
+    // Backend is online — connect for real
+
+    try {
+
+      socketInstance = io('http://localhost:5000', {
+
+        reconnectionAttempts: 2,
+
+        reconnectionDelay: 2000,
+
+        timeout: 4000,
+
+        transports: ['polling', 'websocket']  // polling first avoids WS upgrade errors
+
+      });
+
+      socketInstance.on('connect', () => {
+
+        // Socket connected
+
+        const apiLabel = document.getElementById('api-label');
+
+        const apiDot = document.getElementById('api-dot');
+
+        if(apiLabel) apiLabel.innerText = 'Connected';
+
+        if(apiDot) apiDot.className = 'api-status-dot connected';
+
+      });
+
+      socketInstance.on('connect_error', (err) => {
+
+        // Silent — backend health check already told us status
+
+      });
+
+      socketInstance.on('duplicate-detected', (data) => {
+
+        toast('⚠️ Duplicate found: ' + data.fileName + ' on ' + data.platform, 'danger', 5000);
+
+        loadOverview();
+
+      });
+
+    } catch(e) {
+
+      // Silent fallback
+
+      socketInstance = { on(){}, off(){}, emit(){}, disconnect(){}, connected: false };
+
+    }
+
+  }
+
+  // Wait for checkApiStatus to finish before connecting
+
+  if(typeof window.__backendOnline === 'undefined') {
+
+    setTimeout(tryConnect, 600);
+
+  } else {
+
+    tryConnect();
+
+  }
+
+}
+
+
+/* ═══════════════════ AUTH ═══════════════════ */
+
+/* ── LOCAL USER DATABASE (localStorage) ── */
+/* Each account stored as: cs_users = { "email": { name, email, passwordHash, id, createdAt } } */
+
+function _getUsers() {
+  try { return JSON.parse(localStorage.getItem('cs_users') || '{}'); } catch(e) { return {}; }
+}
+
+function _saveUsers(users) {
+  localStorage.setItem('cs_users', JSON.stringify(users));
+}
+
+/* Simple hash — not cryptographic but enough for local demo storage */
+async function _hashPassword(pass) {
+  const buf = new TextEncoder().encode(pass + ':cs_salt_2024');
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function _generateId() {
+  return 'user_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+}
+
+// FIX: Single doLogin function — removed duplicate, merged both behaviors
+async function doLogin() {
+
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+
+  const pass = document.getElementById('login-pass').value;
+
+  const alertEl = document.getElementById('login-alert');
+
+  const btn = document.getElementById('login-btn');
+
+  alertEl.className = 'alert'; alertEl.textContent = '';
+
+  if(!email || !pass) { alertEl.className='alert danger'; alertEl.textContent='Please fill all fields'; return; }
+
+  btn.disabled = true; btn.textContent = 'Signing in...';
+
+  /* ── Try real backend first ── */
+  try {
+
+    const data = await api('/auth/login', { method:'POST', body: JSON.stringify({email, password:pass}) });
+
+    token = data.token; currentUser = data.user;
+
+    localStorage.setItem('cs_token', token);
+
+    localStorage.setItem('cs_user', JSON.stringify(data.user));
+
+    closeModal('login');
+
+    enterDashboard();
+
+    toast('Welcome back! 🛡️', 'success');
+
+  } catch(e) {
+
+    if(e.message && e.message.includes('connect')) {
+
+      /* ── Backend offline: check local DB ── */
+      const users = _getUsers();
+
+      const userKey = email;
+
+      if (!users[userKey]) {
+
+        alertEl.className = 'alert danger';
+
+        alertEl.textContent = 'No account found with this email. Please register first.';
+
+        btn.disabled = false; btn.textContent = 'Sign In';
+
+        return;
+
+      }
+
+      const passHash = await _hashPassword(pass);
+
+      if (users[userKey].passwordHash !== passHash) {
+
+        alertEl.className = 'alert danger';
+
+        alertEl.textContent = 'Incorrect password. Please try again.';
+
+        btn.disabled = false; btn.textContent = 'Sign In';
+
+        return;
+
+      }
+
+      /* Credentials match — log in */
+      token = 'local-token-' + users[userKey].id;
+
+      currentUser = { name: users[userKey].name, email: users[userKey].email, id: users[userKey].id };
+
+      localStorage.setItem('cs_token', token);
+
+      localStorage.setItem('cs_user', JSON.stringify(currentUser));
+
+      closeModal('login');
+
+      enterDashboard();
+
+      toast('Welcome back, ' + currentUser.name + '! 🛡️', 'success');
+
+    } else {
+
+      alertEl.className = 'alert danger'; alertEl.textContent = e.message;
+
+    }
+
+  }
+
+  btn.disabled = false; btn.textContent = 'Sign In';
+
+}
+
+// FIX: Single doRegister function — removed duplicate
+async function doRegister() {
+
+  const name = document.getElementById('reg-name').value.trim();
+
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+
+  const pass = document.getElementById('reg-pass').value;
+
+  const alertEl = document.getElementById('reg-alert');
+
+  const btn = document.getElementById('reg-btn');
+
+  alertEl.className = 'alert'; alertEl.textContent = '';
+
+  if(!name || !email || !pass) { alertEl.className='alert danger'; alertEl.textContent='Please fill all fields'; return; }
+
+  if(pass.length < 6) { alertEl.className='alert danger'; alertEl.textContent='Password must be at least 6 characters'; return; }
+
+  /* Basic email format check */
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+
+    alertEl.className='alert danger'; alertEl.textContent='Please enter a valid email address'; return;
+
+  }
+
+  btn.disabled = true; btn.textContent = 'Creating account...';
+
+  /* ── Try real backend first ── */
+  try {
+
+    const data = await api('/auth/register', { method:'POST', body: JSON.stringify({name, email, password:pass}) });
+
+    token = data.token; currentUser = data.user;
+
+    localStorage.setItem('cs_token', token);
+
+    localStorage.setItem('cs_user', JSON.stringify(data.user));
+
+    closeModal('register');
+
+    enterDashboard();
+
+    toast('Welcome to ContentShield AI! 🛡️', 'success');
+
+  } catch(e) {
+
+    if(e.message && e.message.includes('connect')) {
+
+      /* ── Backend offline: use local DB ── */
+      const users = _getUsers();
+
+      /* Check if email already registered */
+      if (users[email]) {
+
+        alertEl.className = 'alert danger';
+
+        alertEl.textContent = 'An account with this email already exists. Please sign in instead.';
+
+        btn.disabled = false; btn.textContent = 'Create Account';
+
+        return;
+
+      }
+
+      /* Create new account */
+      const passHash = await _hashPassword(pass);
+
+      const newUser = { name, email, passwordHash: passHash, id: _generateId(), createdAt: new Date().toISOString() };
+
+      users[email] = newUser;
+
+      _saveUsers(users);
+
+      token = 'local-token-' + newUser.id;
+
+      currentUser = { name: newUser.name, email: newUser.email, id: newUser.id };
+
+      localStorage.setItem('cs_token', token);
+
+      localStorage.setItem('cs_user', JSON.stringify(currentUser));
+
+      closeModal('register');
+
+      enterDashboard();
+
+      toast('Account created! Welcome, ' + name + '! 🛡️', 'success');
+
+    } else {
+
+      alertEl.className = 'alert danger'; alertEl.textContent = e.message;
+
+    }
+
+  }
+
+  btn.disabled = false; btn.textContent = 'Create Account';
+
+}
+
+function handleLogout() {
+
+  token = null; currentUser = null;
+
+  localStorage.removeItem('cs_token'); localStorage.removeItem('cs_user');
+
+  if(socketInstance) { socketInstance.disconnect(); socketInstance = null; }
+
+  showView('landing'); updateNav(false);
+
+  toast('Signed out successfully', 'info');
+
+}
+
+// FIX: enterDashboard properly defined at global scope (not inside doLogin catch block)
+
+function enterDashboard() {
+
+  showView('dashboard');
+
+  updateNav(true);
+
+  document.getElementById('user-greeting').textContent = currentUser?.name?.split(' ')[0] || 'User';
+
+  loadMockData();
+
+  loadOverview();
+
+  // Check backend first, THEN init socket — avoids connection spam if offline
+
+  checkApiStatus().then(() => initSocket());
+
+}
+
+/* ═══════════════════ MOCK DATA ═══════════════════ */
+
+function loadMockData() {
+
+  mockFiles = [
+
+    {_id:'f1', originalName:'brand-logo-v2.png', fileType:'image', fileSize:1204000, uploadedAt: new Date(Date.now()-3600000).toISOString()},
+
+    {_id:'f2', originalName:'promo-video-2026.mp4', fileType:'video', fileSize:28400000, uploadedAt: new Date(Date.now()-7200000).toISOString()},
+
+    {_id:'f3', originalName:'product-launch.pdf', fileType:'pdf', fileSize:890000, uploadedAt: new Date(Date.now()-86400000).toISOString()},
+
+    {_id:'f4', originalName:'podcast-ep12.mp3', fileType:'audio', fileSize:32000000, uploadedAt: new Date(Date.now()-172800000).toISOString()},
+
+    {_id:'f5', originalName:'campaign-art.webp', fileType:'image', fileSize:540000, uploadedAt: new Date(Date.now()-259200000).toISOString()},
+
+  ];
+
+  mockDetections = [
+
+    {_id:'d1', originalFileId:{originalName:'brand-logo-v2.png', fileType:'image'}, isDuplicate:true, totalMatches:3, detectedAt:new Date(Date.now()-3600000).toISOString(), matchedFiles:[{similarityScore:98,platform:'Instagram'},{similarityScore:87,platform:'Facebook'},{similarityScore:72,platform:'Pinterest'}]},
+
+    {_id:'d2', originalFileId:{originalName:'promo-video-2026.mp4', fileType:'video'}, isDuplicate:false, totalMatches:1, detectedAt:new Date(Date.now()-7200000).toISOString(), matchedFiles:[{similarityScore:45,platform:'YouTube'}]},
+
+    {_id:'d3', originalFileId:{originalName:'campaign-art.webp', fileType:'image'}, isDuplicate:true, totalMatches:2, detectedAt:new Date(Date.now()-86400000).toISOString(), matchedFiles:[{similarityScore:95,platform:'Twitter'},{similarityScore:91,platform:'TikTok'}]},
+
+  ];
+
+  document.getElementById('dup-count').textContent = mockDetections.filter(d=>d.isDuplicate).length;
+
+}
+
+/* ═══════════════════ OVERVIEW ═══════════════════ */
+
+async function loadOverview() {
+
+  try {
+
+    const data = await api('/analytics');
+
+    document.getElementById('stat-files').textContent = data.overview.totalFilesUploaded;
+
+    document.getElementById('stat-detections').textContent = data.overview.totalDetections;
+
+    document.getElementById('stat-dups').textContent = data.overview.totalDuplicatesFound;
+
+    document.getElementById('stat-acc').textContent = data.overview.accuracyPercentage + '%';
+
+    renderBarChart('uploads-bar-chart', data.uploadsLast7Days);
+
+    renderPlatformList('platform-list', data.platformDistribution.slice(0,5));
+
+  } catch {
+
+    document.getElementById('stat-files').textContent = mockFiles.length || 150;
+
+    document.getElementById('stat-detections').textContent = mockDetections.length || 150;
+
+    document.getElementById('stat-dups').textContent = mockDetections.filter(d=>d.isDuplicate).length || 23;
+
+    document.getElementById('stat-acc').textContent = '87%';
+
+    renderBarChart('uploads-bar-chart', mockUploadsData());
+
+    renderPlatformList('platform-list', mockPlatformData().slice(0,5));
+
+  }
+
+  renderActivity();
+
+}
+
+function mockUploadsData() {
+
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  return days.map(d => ({ date: d, count: Math.floor(Math.random()*20)+5 }));
+
+}
+
+function mockPlatformData() {
+
+  return ['Instagram','TikTok','Twitter','YouTube','Facebook','LinkedIn','Pinterest','Reddit']
+
+    .map(p => ({ platform:p, count: Math.floor(Math.random()*200)+10 }));
+
+}
+
+function renderBarChart(containerId, data) {
+
+  const el = document.getElementById(containerId);
+
+  if(!el || !data) return;
+
+  const max = Math.max(...data.map(d=>d.count), 1);
+
+  el.innerHTML = data.map(d => `
+
+    <div class="bar-col">
+
+      <div class="bar" style="height:${Math.max((d.count/max)*100, 8)}px" title="${d.count} uploads"></div>
+
+      <div class="bar-label">${d.date||d.count}</div>
+
+    </div>
+
+  `).join('');
+
+}
+
+function renderPlatformList(containerId, data) {
+
+  const el = document.getElementById(containerId);
+
+  if(!el) return;
+
+  const max = Math.max(...data.map(d=>d.count), 1);
+
+  const colors = { Instagram:'#E1306C', TikTok:'#69C9D0', Twitter:'#1DA1F2', YouTube:'#FF0000', Facebook:'#1877F2', LinkedIn:'#0A66C2', Pinterest:'#E60023', Reddit:'#FF4500' };
+
+  el.innerHTML = data.map(d => `
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+
+      <div style="font-size:13px;width:80px;color:var(--text2);flex-shrink:0">${d.platform}</div>
+
+      <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+
+        <div style="height:100%;width:${(d.count/max)*100}%;background:${colors[d.platform]||'var(--gold)'};border-radius:3px;transition:width 0.8s var(--transition)"></div>
+
+      </div>
+
+      <div style="font-size:12px;color:var(--text3);width:28px;text-align:right">${d.count}</div>
+
+    </div>
+
+  `).join('');
+
+}
+
+function renderActivity() {
+
+  const feed = document.getElementById('activity-feed');
+
+  const items = [
+
+    { icon:'🛡️', bg:'rgba(201,168,76,0.15)', action:'<strong>brand-logo-v2.png</strong> detected as duplicate on Instagram (98% match)', time:'2 hours ago' },
+
+    { icon:'📤', bg:'rgba(91,158,232,0.15)', action:'<strong>promo-video-2026.mp4</strong> uploaded and fingerprinted successfully', time:'4 hours ago' },
+
+    { icon:'⚠️', bg:'rgba(224,82,82,0.15)', action:'<strong>campaign-art.webp</strong> found on Twitter (95%) and TikTok (91%)', time:'1 day ago' },
+
+    { icon:'✅', bg:'rgba(46,204,138,0.15)', action:'<strong>podcast-ep12.mp3</strong> — no duplicates detected', time:'2 days ago' },
+
+    { icon:'📊', bg:'rgba(232,184,71,0.15)', action:'Analytics report generated for the week', time:'3 days ago' },
+
+  ];
+
+  feed.innerHTML = items.map(i => `
+
+    <div class="activity-item">
+
+      <div class="activity-dot" style="background:${i.bg}">${i.icon}</div>
+
+      <div class="activity-info">
+
+        <div class="activity-action">${i.action}</div>
+
+        <div class="activity-time">${i.time}</div>
+
+      </div>
+
+    </div>
+
+  `).join('');
+
+}
+
+/* ═══════════════════ UPLOAD (Dashboard) ═══════════════════ */
+
+function getFileIcon(type) {
+
+  const icons = { image:'🖼️', video:'🎬', audio:'🎵', pdf:'📑' };
+
+  return icons[type] || '📄';
+
+}
+
+function formatBytes(b) {
+
+  if(b < 1024) return b + ' B';
+
+  if(b < 1048576) return (b/1024).toFixed(1) + ' KB';
+
+  return (b/1048576).toFixed(1) + ' MB';
+
+}
+
+function getFileType(mime) {
+
+  if(!mime) return 'other';
+
+  if(mime.startsWith('image/')) return 'image';
+
+  if(mime.startsWith('video/')) return 'video';
+
+  if(mime.startsWith('audio/')) return 'audio';
+
+  if(mime === 'application/pdf') return 'pdf';
+
+  return 'other';
+
+}
+
+// FIX: Upload zone now properly wired
+
+const uploadZone = document.getElementById('upload-zone');
+
+const fileInput = document.getElementById('file-input');
+
+// FIX: Single set of drag/drop event listeners (not duplicated)
+
+uploadZone.addEventListener('click', (e) => {
+
+  if(e.target.id !== 'upload-choose-btn') fileInput.click();
+
+});
+
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+
+uploadZone.addEventListener('drop', (e) => {
+
+  e.preventDefault();
+
+  uploadZone.classList.remove('drag-over');
+
+  const file = e.dataTransfer.files[0];
+
+  if(file) handleFileSelect(file);
+
+});
+
+// FIX: fileInput change listener — single, correctly references declared variable
+
+fileInput.addEventListener('change', () => {
+
+  if(fileInput.files.length > 0) handleFileSelect(fileInput.files[0]);
+
+});
+
+// NEW: Image preview when a file is selected
+
+function showImagePreview(file) {
+
+  const wrap = document.getElementById('img-preview-wrap');
+
+  const img = document.getElementById('img-preview');
+
+  if(file.type.startsWith('image/')) {
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => { img.src = e.target.result; wrap.style.display = 'block'; };
+
+    reader.readAsDataURL(file);
+
+  } else {
+
+    wrap.style.display = 'none';
+
+  }
+
+}
+
+async function handleFileSelect(file) {
+
+  // Validate file size
+
+  if(file.size > 50 * 1024 * 1024) { toast('File size exceeds 50MB limit!', 'danger'); return; }
+
+  // Update UI
+
+  document.getElementById('upload-zone-title').textContent = '📎 ' + file.name;
+
+  showImagePreview(file);
+
+  const progress = document.getElementById('upload-progress');
+
+  const bar = document.getElementById('progress-bar');
+
+  const pct = document.getElementById('progress-pct');
+
+  const icon = document.getElementById('progress-icon');
+
+  const nameEl = document.getElementById('progress-name');
+
+  const resultCard = document.getElementById('upload-result');
+
+  progress.style.display = 'block';
+
+  resultCard.style.display = 'none';
+
+  icon.textContent = getFileIcon(getFileType(file.type));
+
+  nameEl.textContent = file.name;
+
+  let p = 0;
+
+  const timer = setInterval(() => {
+
+    p = Math.min(p + Math.random()*15, 90);
+
+    bar.style.width = p + '%';
+
+    pct.textContent = Math.floor(p) + '%';
+
+  }, 150);
+
+  const formData = new FormData();
+
+  formData.append('file', file);
+
+  let result;
+
+  try {
+
+    result = await (token && token !== 'demo-token'
+
+      ? fetch(`${API_BASE}/upload`, {
+
+          method: 'POST',
+
+          headers: { Authorization: `Bearer ${token}` },
+
+          body: formData
+
+        }).then(r => r.json())
+
+      : mockUploadResult(file));
+
+  } catch {
+
+    result = await mockUploadResult(file);
+
+  }
+
+  clearInterval(timer);
+
+  bar.style.width = '100%'; pct.textContent = '100%';
+
+  setTimeout(() => {
+
+    renderUploadResult(result, file);
+
+    mockFiles.unshift({_id: 'f'+Date.now(), originalName: file.name, fileType: getFileType(file.type), fileSize: file.size, uploadedAt: new Date().toISOString()});
+
+    if(result.detection?.isDuplicate) {
+
+      mockDetections.unshift({_id:'d'+Date.now(), originalFileId:{originalName:file.name, fileType:getFileType(file.type)}, isDuplicate:true, totalMatches:result.detection.totalMatches, detectedAt:new Date().toISOString(), matchedFiles:result.detection.matchedFiles});
+
+      document.getElementById('dup-count').textContent = mockDetections.filter(d=>d.isDuplicate).length;
+
+    }
+
+    toast(result.detection?.isDuplicate ? '⚠️ Duplicate detected!' : '✅ File uploaded — no duplicates', result.detection?.isDuplicate ? 'warning' : 'success');
+
+  }, 400);
+
+}
+
+async function mockUploadResult(file) {
+
+  await new Promise(r => setTimeout(r, 1200));
+
+  const isDup = Math.random() > 0.5;
+
+  const hash = Array.from({length:64}, ()=>'0123456789abcdef'[Math.floor(Math.random()*16)]).join('');
+
+  const platforms = ['Instagram','Twitter','Facebook','YouTube','TikTok','LinkedIn','Pinterest','Reddit'];
+
+  return {
+
+    message: 'File uploaded successfully',
+
+    file: { originalName: file.name, fileType: getFileType(file.type), fileSize: file.size },
+
+    fingerprint: { id: 'fp_'+Date.now(), hash },
+
+    detection: {
+
+      isDuplicate: isDup,
+
+      totalMatches: isDup ? Math.floor(Math.random()*3)+1 : 0,
+
+      matchedFiles: isDup ? Array.from({length:Math.floor(Math.random()*3)+1}, ()=>({
+
+        fileId: 'f'+Math.random(),
+
+        similarityScore: Math.floor(Math.random()*20)+80,
+
+        platform: platforms[Math.floor(Math.random()*platforms.length)]
+
+      })) : []
+
+    }
+
+  };
+
+}
+
+function renderUploadResult(data, file) {
+
+  const card = document.getElementById('upload-result');
+
+  const badge = document.getElementById('result-badge');
+
+  const content = document.getElementById('result-content');
+
+  card.style.display = 'block';
+
+  const isDup = data.detection?.isDuplicate;
+
+  const maxScore = isDup && data.detection.matchedFiles.length
+
+    ? Math.max(...data.detection.matchedFiles.map(m=>m.similarityScore)) : 0;
+
+  badge.innerHTML = isDup
+
+    ? '<span class="badge badge-danger">⚠️ Duplicate Detected</span>'
+
+    : '<span class="badge badge-success">✅ Original Content</span>';
+
+  // NEW: Protection score ring
+
+  const scoreClass = maxScore >= 90 ? 'score-danger' : maxScore >= 70 ? 'score-warn' : 'score-safe';
+
+  const displayScore = isDup ? maxScore : 100;
+
+  const scoreLabel = isDup ? `${maxScore}% match` : '100% Safe';
+
+  content.innerHTML = `
+
+    <div class="score-ring">
+
+      <div class="score-circle ${scoreClass}">${displayScore}%</div>
+
+      <div>
+
+        <div style="font-size:15px;font-weight:600">${scoreLabel}</div>
+
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${isDup ? 'Content matched on external platforms' : 'No matches found in any platform'}</div>
+
+      </div>
+
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+
+      <div>
+
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">File</div>
+
+        <div style="font-size:14px;font-weight:500">${file.name}</div>
+
+        <div style="font-size:12px;color:var(--text3)">${formatBytes(file.size)}</div>
+
+      </div>
+
+      <div>
+
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">SHA-256 Fingerprint</div>
+
+        <!-- NEW: Click-to-copy hash -->
+
+        <div class="hash-display" onclick="copyHash('${data.fingerprint?.hash||''}')" title="Click to copy">${data.fingerprint?.hash?.substring(0,32)||''}...</div>
+
+      </div>
+
+    </div>
+
+    <div style="font-size:13px;color:var(--text2);margin-bottom:${data.detection?.matchedFiles?.length ? '12px':'0'}">
+
+      ${isDup
+
+        ? `<strong style="color:var(--danger)">⚠️ ${data.detection.totalMatches} match${data.detection.totalMatches>1?'es':''} found</strong> — this content has been detected on other platforms.`
+
+        : '✅ No duplicate content found. Your file appears to be original.'}
+
+    </div>
+
+    ${data.detection?.matchedFiles?.length ? `
+
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Matches</div>
+
+      <div class="match-list">
+
+        ${data.detection.matchedFiles.map(m => `
+
+          <div class="match-item">
+
+            <span class="platform-pill">${m.platform}</span>
+
+            <div class="match-score-bar"><div class="match-score-fill ${m.similarityScore>=90?'danger':''}" style="width:${m.similarityScore}%"></div></div>
+
+            <span class="match-score-val">${m.similarityScore}%</span>
+
+          </div>
+
+        `).join('')}
+
+      </div>
+
+    ` : ''}
+
+  `;
+
+}
+
+// NEW: Copy hash to clipboard
+
+function copyHash(hash) {
+
+  navigator.clipboard.writeText(hash).then(() => {
+
+    toast('SHA-256 hash copied to clipboard! 📋', 'success', 2000);
+
+  }).catch(() => toast('Copy failed — check browser permissions', 'danger'));
+
+}
+
+/* ═══════════════════ FILES ═══════════════════ */
+
+async function loadFiles() {
+
+  const list = document.getElementById('file-list');
+
+  list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Loading...</div></div>';
+
+  let files = [];
+
+  try {
+
+    const data = await api('/files');
+
+    files = data.files;
+
+  } catch {
+
+    files = mockFiles;
+
+  }
+
+  renderFileList(files);
+
+}
+
+// NEW: Filter files by search term
+
+function filterFiles() {
+
+  const q = document.getElementById('file-search').value.toLowerCase();
+
+  const filtered = mockFiles.filter(f => f.originalName.toLowerCase().includes(q));
+
+  renderFileList(filtered);
+
+}
+
+function renderFileList(files) {
+
+  const list = document.getElementById('file-list');
+
+  if(!files.length) {
+
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🗂️</div><div class="empty-text">No files found</div><div class="empty-sub">Upload a file to get started</div></div>';
+
+    return;
+
+  }
+
+  const typeIcon = {image:'🖼️',video:'🎬',audio:'🎵',pdf:'📑',other:'📄'};
+
+  const typeBg = {image:'fi-image',video:'fi-video',audio:'fi-audio',pdf:'fi-pdf'};
+
+  list.innerHTML = files.map(f => `
+
+    <div class="file-item" id="file-${f._id}">
+
+      <div class="file-item-icon ${typeBg[f.fileType]||''}">${typeIcon[f.fileType]||'📄'}</div>
+
+      <div class="file-item-info">
+
+        <div class="file-item-name">${f.originalName}</div>
+
+        <div class="file-item-meta">${f.fileType?.toUpperCase()} · ${formatBytes(f.fileSize)} · ${new Date(f.uploadedAt).toLocaleDateString()}</div>
+
+      </div>
+
+      <div class="file-item-actions">
+
+        <span class="badge badge-gold">${f.fileType}</span>
+
+        <!-- NEW: Delete button -->
+
+        <button class="btn-delete" onclick="deleteFile('${f._id}')" title="Delete file">🗑️</button>
+
+      </div>
+
+    </div>
+
+  `).join('');
+
+}
+
+// NEW: Delete file from mock list
+
+function deleteFile(id) {
+
+  const idx = mockFiles.findIndex(f => f._id === id);
+
+  if(idx !== -1) {
+
+    const name = mockFiles[idx].originalName;
+
+    mockFiles.splice(idx, 1);
+
+    renderFileList(mockFiles);
+
+    toast(`Deleted: ${name}`, 'info');
+
+  }
+
+}
+
+/* ═══════════════════ DETECTIONS ═══════════════════ */
+
+async function loadDetections() {
+
+  const list = document.getElementById('detection-list');
+
+  const dupsOnly = document.getElementById('dups-only').checked;
+
+  list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div><div class="empty-text">Loading...</div></div>';
+
+  let detections = [];
+
+  try {
+
+    const data = await api(`/detections?duplicatesOnly=${dupsOnly}&limit=20`);
+
+    detections = data.detections;
+
+  } catch {
+
+    detections = dupsOnly ? mockDetections.filter(d=>d.isDuplicate) : mockDetections;
+
+  }
+
+  if(!detections.length) {
+
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">No detections found</div><div class="empty-sub">Upload a file to trigger detection</div></div>';
+
+    return;
+
+  }
+
+  list.innerHTML = detections.map(d => {
+
+    const file = d.originalFileId;
+
+    const fname = typeof file==='object' ? file.originalName : 'Unknown file';
+
+    return `
+
+    <div class="detection-card ${d.isDuplicate?'is-dup':''}">
+
+      <div class="detection-card-top">
+
+        <div style="flex:1">
+
+          <div style="font-size:15px;font-weight:600;margin-bottom:4px">${fname}</div>
+
+          <div class="detection-meta">
+
+            <div class="detection-meta-item">📅 ${new Date(d.detectedAt).toLocaleString()}</div>
+
+            <div class="detection-meta-item">🔗 ${d.totalMatches} match${d.totalMatches!==1?'es':''}</div>
+
+          </div>
+
+        </div>
+
+        ${d.isDuplicate ? '<span class="badge badge-danger">⚠️ Duplicate</span>' : '<span class="badge badge-success">✅ Original</span>'}
+
+      </div>
+
+      ${d.matchedFiles?.length ? `
+
+        <div class="match-list">
+
+          ${d.matchedFiles.map(m => `
+
+            <div class="match-item">
+
+              <span class="platform-pill">${m.platform}</span>
+
+              <div class="match-score-bar"><div class="match-score-fill ${m.similarityScore>=90?'danger':''}" style="width:${m.similarityScore}%"></div></div>
+
+              <span class="match-score-val">${m.similarityScore}%</span>
+
+            </div>
+
+          `).join('')}
+
+        </div>
+
+      ` : ''}
+
+    </div>
+
+  `}).join('');
+
+}
+
+// NEW: Export detections as JSON
+
+function exportDetections() {
+
+  const data = JSON.stringify(mockDetections, null, 2);
+
+  const blob = new Blob([data], {type:'application/json'});
+
+  const a = document.createElement('a');
+
+  a.href = URL.createObjectURL(blob);
+
+  a.download = `contentshield-detections-${Date.now()}.json`;
+
+  a.click();
+
+  toast('Detections exported as JSON! 📥', 'success');
+
+}
+
+/* ═══════════════════ ANALYTICS ═══════════════════ */
+
+async function loadAnalytics() {
+
+  let data;
+
+  try {
+
+    data = await api('/analytics');
+
+  } catch {
+
+    data = {
+
+      overview: { totalFilesUploaded: mockFiles.length || 150, totalDetections: mockDetections.length || 150, totalDuplicatesFound: mockDetections.filter(d=>d.isDuplicate).length || 23, accuracyPercentage: 87 },
+
+      fileTypeBreakdown: [{fileType:'image',count:90},{fileType:'video',count:40},{fileType:'audio',count:12},{fileType:'pdf',count:8}],
+
+      platformDistribution: mockPlatformData(),
+
+      uploadsLast7Days: mockUploadsData()
+
+    };
+
+  }
+
+  const ov = data.overview;
+
+  document.getElementById('a-files').textContent = ov.totalFilesUploaded;
+
+  document.getElementById('a-detections').textContent = ov.totalDetections;
+
+  document.getElementById('a-dups').textContent = ov.totalDuplicatesFound;
+
+  document.getElementById('a-acc').textContent = ov.accuracyPercentage + '%';
+
+  const ftEl = document.getElementById('filetype-breakdown');
+
+  const ftTotal = data.fileTypeBreakdown.reduce((s,i)=>s+i.count, 0);
+
+  const ftColors = {image:'var(--info)',video:'var(--danger)',audio:'var(--success)',pdf:'var(--warning)',other:'var(--text3)'};
+
+  ftEl.innerHTML = data.fileTypeBreakdown.map(f => `
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+
+      <div style="font-size:13px;width:48px;color:var(--text2)">${f.fileType}</div>
+
+      <div style="flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
+
+        <div style="height:100%;width:${(f.count/ftTotal)*100}%;background:${ftColors[f.fileType]||'var(--gold)'};border-radius:4px"></div>
+
+      </div>
+
+      <div style="font-size:12px;color:var(--text3);width:28px">${f.count}</div>
+
+    </div>
+
+  `).join('');
+
+  renderBarChart('analytics-bar-chart', data.uploadsLast7Days);
+
+  const pEl = document.getElementById('analytics-platforms');
+
+  const pColors = {Instagram:'#E1306C',TikTok:'#69C9D0',Twitter:'#1DA1F2',YouTube:'#FF0000',Facebook:'#1877F2',LinkedIn:'#0A66C2',Pinterest:'#E60023',Reddit:'#FF4500'};
+
+  pEl.innerHTML = data.platformDistribution.map(p => `
+
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:1px solid rgba(255,255,255,0.06);border-radius:8px">
+
+      <div style="width:8px;height:8px;border-radius:50%;background:${pColors[p.platform]||'var(--gold)'}"></div>
+
+      <span style="font-size:13px;font-weight:500">${p.platform}</span>
+
+      <span style="font-size:12px;color:var(--text3)">${p.count}</span>
+
+    </div>
+
+  `).join('');
+
+}
+
+// NEW: Export analytics as a text report
+
+function exportAnalyticsReport() {
+
+  const files = document.getElementById('a-files').textContent;
+
+  const dets = document.getElementById('a-detections').textContent;
+
+  const dups = document.getElementById('a-dups').textContent;
+
+  const acc = document.getElementById('a-acc').textContent;
+
+  const report = [
+
+    '════════════════════════════════════',
+
+    '      ContentShield AI — Analytics Report',
+
+    `      Generated: ${new Date().toLocaleString()}`,
+
+    '════════════════════════════════════',
+
+    '',
+
+    `  Files Uploaded:      ${files}`,
+
+    `  Total Detections:    ${dets}`,
+
+    `  Duplicates Found:    ${dups}`,
+
+    `  Accuracy Score:      ${acc}`,
+
+    '',
+
+    '  Platform Distribution:',
+
+    ...mockPlatformData().map(p => `    • ${p.platform}: ${p.count} detections`),
+
+    '',
+
+    '  Mock Detections:',
+
+    ...mockDetections.map(d => {
+
+      const fname = typeof d.originalFileId === 'object' ? d.originalFileId.originalName : 'Unknown';
+
+      return `    • ${fname} — ${d.isDuplicate ? '⚠️ DUPLICATE' : '✅ ORIGINAL'} (${d.totalMatches} match${d.totalMatches!==1?'es':''})`;
+
+    }),
+
+    '',
+
+    '════════════════════════════════════',
+
+    '  ContentShield AI © 2026',
+
+  ].join('\n');
+
+  const blob = new Blob([report], {type:'text/plain'});
+
+  const a = document.createElement('a');
+
+  a.href = URL.createObjectURL(blob);
+
+  a.download = `contentshield-report-${Date.now()}.txt`;
+
+  a.click();
+
+  toast('Analytics report exported! 📄', 'success');
+
+}
+
+/* ═══════════════════ CLOUDINARY ═══════════════════ */
+
+function loadCloudinaryStats() {
+
+  // Mock Cloudinary usage stats
+
+  const assets = mockFiles.length + 142;
+
+  const storage = ((mockFiles.reduce((s,f)=>s+f.fileSize,0) + 485000000) / 1048576).toFixed(1);
+
+  document.getElementById('cld-assets').textContent = assets;
+
+  document.getElementById('cld-storage').textContent = storage + ' MB';
+
+  document.getElementById('cld-bw').textContent = (Math.random()*5+1.5).toFixed(2) + ' GB';
+
+  document.getElementById('cld-hits').textContent = (Math.floor(Math.random()*50000)+10000).toLocaleString();
+
+  renderCldAssets();
+
+}
+
+function renderCldAssets() {
+
+  const el = document.getElementById('cld-asset-list');
+
+  const typeIcon = {image:'🖼️',video:'🎬',audio:'🎵',pdf:'📑',other:'📄'};
+
+  el.innerHTML = mockFiles.map(f => `
+
+    <div class="file-item" style="margin-bottom:0">
+
+      <div class="file-item-icon fi-${f.fileType}">${typeIcon[f.fileType]||'📄'}</div>
+
+      <div class="file-item-info">
+
+        <div class="file-item-name">${f.originalName}</div>
+
+        <div class="file-item-meta">${formatBytes(f.fileSize)} · CDN cached</div>
+
+      </div>
+
+      <span class="badge badge-info" style="font-size:10px">☁️ CDN</span>
+
+    </div>
+
+  `).join('');
+
+}
+
+function buildCloudinaryUrl() {
+
+  const src = document.getElementById('cld-url-input').value.trim() || 'https://res.cloudinary.com/demo/image/upload/sample.jpg';
+
+  const w = document.getElementById('cld-width').value || '800';
+
+  const h = document.getElementById('cld-height').value || '600';
+
+  const crop = document.getElementById('cld-crop').value;
+
+  const fmt = document.getElementById('cld-format').value;
+
+  const q = document.getElementById('cld-quality').value;
+
+  // Build Cloudinary transformation URL
+
+  let url = src;
+
+  if(src.includes('cloudinary.com') && src.includes('/upload/')) {
+
+    const transforms = `w_${w},h_${h},c_${crop},f_${fmt},q_${q}`;
+
+    url = src.replace('/upload/', `/upload/${transforms}/`);
+
+  } else {
+
+    url = `[Cloudinary URL] w:${w} h:${h} crop:${crop} fmt:${fmt} q:${q}%
+
+Apply transforms via: /upload/w_${w},h_${h},c_${crop},f_${fmt},q_${q}/`;
+
+  }
+
+  const resultEl = document.getElementById('cld-result');
+
+  const urlEl = document.getElementById('cld-result-url');
+
+  const previewEl = document.getElementById('cld-preview-img');
+
+  resultEl.style.display = 'block';
+
+  urlEl.textContent = url;
+
+  if(src.startsWith('https://') && src.includes('cloudinary.com')) {
+
+    previewEl.innerHTML = `<img src="${url}" style="max-width:100%;max-height:160px;border-radius:8px;border:1px solid var(--gold-border);object-fit:cover;margin-top:8px" onerror="this.style.display='none'">`;
+
+  } else {
+
+    previewEl.innerHTML = '';
+
+  }
+
+  toast('Transform URL built! ☁️', 'success', 2000);
+
+}
+
+function copyCldUrl() {
+
+  const url = document.getElementById('cld-result-url').textContent;
+
+  navigator.clipboard.writeText(url).then(() => toast('URL copied! ☁️', 'success', 2000));
+
+}
+
+/* ═══════════════════ BULK UPLOAD ═══════════════════ */
+
+let bulkFiles = [];
+
+let bulkStats = { done: 0, dups: 0, errors: 0 };
+
+const bulkDrop = document.getElementById('bulk-drop-zone');
+
+bulkDrop.addEventListener('dragover', e => { e.preventDefault(); bulkDrop.classList.add('drag-over'); });
+
+bulkDrop.addEventListener('dragleave', () => bulkDrop.classList.remove('drag-over'));
+
+bulkDrop.addEventListener('drop', e => {
+
+  e.preventDefault(); bulkDrop.classList.remove('drag-over');
+
+  handleBulkSelect(e.dataTransfer.files);
+
+});
+
+function handleBulkSelect(fileList) {
+
+  const files = Array.from(fileList).slice(0, 20);
+
+  if(!files.length) return;
+
+  bulkFiles = files.map(f => ({ file: f, status: 'pending', result: null }));
+
+  bulkStats = { done: 0, dups: 0, errors: 0 };
+
+  renderBulkQueue();
+
+  document.getElementById('bulk-queue').style.display = 'block';
+
+  toast(`${files.length} file${files.length > 1 ? 's' : ''} queued for bulk upload`, 'info');
+
+}
+
+function renderBulkQueue() {
+
+  const sub = document.getElementById('bulk-queue-sub');
+
+  const list = document.getElementById('bulk-file-list');
+
+  sub.textContent = `${bulkFiles.length} files ready · ${bulkStats.done} done · ${bulkStats.dups} duplicates`;
+
+  const statusIcon = { pending: '⏳', uploading: '🔄', done: '✅', dup: '⚠️', error: '❌' };
+
+  list.innerHTML = bulkFiles.map((item, i) => `
+
+    <div class="bulk-file-row ${item.status === 'done' ? 'done' : item.status === 'dup' ? 'dup' : item.status === 'error' ? 'error' : ''}" id="bulk-row-${i}">
+
+      <div class="file-item-icon" style="width:36px;height:36px">${getFileIcon(getFileType(item.file.type))}</div>
+
+      <div style="flex:1;min-width:0">
+
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.file.name}</div>
+
+        <div style="font-size:11px;color:var(--text3)">${formatBytes(item.file.size)}</div>
+
+      </div>
+
+      <div class="bulk-status">${statusIcon[item.status] || '⏳'}</div>
+
+    </div>
+
+  `).join('');
+
+}
+
+async function startBulkUpload() {
+
+  const btn = document.getElementById('bulk-start-btn');
+
+  btn.disabled = true; btn.textContent = 'Uploading...';
+
+  document.getElementById('bulk-summary').style.display = 'flex';
+
+  for(let i = 0; i < bulkFiles.length; i++) {
+
+    bulkFiles[i].status = 'uploading';
+
+    renderBulkQueue();
+
+    try {
+
+      const result = await mockUploadResult(bulkFiles[i].file);
+
+      bulkFiles[i].result = result;
+
+      bulkFiles[i].status = result.detection?.isDuplicate ? 'dup' : 'done';
+
+      bulkStats.done++;
+
+      if(result.detection?.isDuplicate) bulkStats.dups++;
+
+      mockFiles.unshift({ _id:'f'+Date.now()+i, originalName:bulkFiles[i].file.name, fileType:getFileType(bulkFiles[i].file.type), fileSize:bulkFiles[i].file.size, uploadedAt:new Date().toISOString() });
+
+    } catch(e) {
+
+      bulkFiles[i].status = 'error';
+
+      bulkStats.errors++;
+
+    }
+
+    document.getElementById('bulk-done').textContent = bulkStats.done;
+
+    document.getElementById('bulk-dups').textContent = bulkStats.dups;
+
+    document.getElementById('bulk-errors').textContent = bulkStats.errors;
+
+    renderBulkQueue();
+
+    await new Promise(r => setTimeout(r, 200));
+
+  }
+
+  btn.disabled = false; btn.textContent = '✓ Done';
+
+  toast(`Bulk complete: ${bulkStats.done} uploaded, ${bulkStats.dups} duplicates found`, bulkStats.dups > 0 ? 'warning' : 'success');
+
+}
+
+function clearBulkQueue() {
+
+  bulkFiles = [];
+
+  document.getElementById('bulk-queue').style.display = 'none';
+
+  document.getElementById('bulk-file-input').value = '';
+
+}
+
+/* ═══════════════════ DMCA TAKEDOWN ═══════════════════ */
+
+let dmcaLog = [];
+
+function generateDmca() {
+
+  const name = document.getElementById('dmca-name').value.trim();
+
+  const email = document.getElementById('dmca-email').value.trim();
+
+  const original = document.getElementById('dmca-original').value.trim();
+
+  const infringing = document.getElementById('dmca-infringing').value.trim();
+
+  const platform = document.getElementById('dmca-platform').value;
+
+  const desc = document.getElementById('dmca-desc').value.trim();
+
+  if(!name || !email || !original || !infringing) {
+
+    toast('Please fill in all required fields', 'danger'); return;
+
+  }
+
+  const date = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  const notice = `DMCA COPYRIGHT TAKEDOWN NOTICE
+
+════════════════════════════════════════════
+
+Date: ${date}
+
+Platform: ${platform}
+
+TO THE DESIGNATED COPYRIGHT AGENT OF ${platform.toUpperCase()}:
+
+I, ${name}, am the copyright owner (or authorized to act on behalf of
+
+the owner) of the content described below. I have a good-faith belief
+
+that the content referenced below infringes my copyright(s).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COPYRIGHTED WORK
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Original Content URL:
+
+${original}
+
+${desc ? `Description of original work:
+
+${desc}
+
+` : ''}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+INFRINGING CONTENT
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Infringing URL on ${platform}:
+
+${infringing}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTACT INFORMATION
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Name: ${name}
+
+Email: ${email}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DECLARATION
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+I declare, under penalty of perjury, that the information in this
+
+notification is accurate and that I am the copyright owner or am
+
+authorized to act on behalf of the owner.
+
+I request that you immediately remove or disable access to the
+
+infringing material listed above.
+
+Signature: /s/ ${name}
+
+Date: ${date}
+
+════════════════════════════════════════════
+
+Generated by ContentShield AI · contentshield.ai`;
+
+  document.getElementById('dmca-output').textContent = notice;
+
+  toast('DMCA notice generated! ⚖️', 'success');
+
+}
+
+function copyDmca() {
+
+  const text = document.getElementById('dmca-output').textContent;
+
+  navigator.clipboard.writeText(text).then(() => toast('Notice copied to clipboard! 📋', 'success', 2000));
+
+}
+
+function downloadDmca() {
+
+  const text = document.getElementById('dmca-output').textContent;
+
+  if(text.includes('Fill in the form')) { toast('Generate a notice first', 'danger'); return; }
+
+  const blob = new Blob([text], {type:'text/plain'});
+
+  const a = document.createElement('a');
+
+  a.href = URL.createObjectURL(blob);
+
+  a.download = `dmca-notice-${Date.now()}.txt`;
+
+  a.click();
+
+  toast('DMCA notice downloaded! 💾', 'success');
+
+}
+
+function saveDmcaLog() {
+
+  const text = document.getElementById('dmca-output').textContent;
+
+  if(text.includes('Fill in the form')) { toast('Generate a notice first', 'danger'); return; }
+
+  const platform = document.getElementById('dmca-platform').value;
+
+  const infringing = document.getElementById('dmca-infringing').value.trim();
+
+  const entry = { id: 'dmca-'+Date.now(), platform, infringing, date: new Date().toISOString(), notice: text };
+
+  dmcaLog.unshift(entry);
+
+  renderDmcaLog();
+
+  toast('Saved to takedown log', 'success');
+
+}
+
+function renderDmcaLog() {
+
+  const el = document.getElementById('dmca-log-list');
+
+  if(!dmcaLog.length) {
+
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚖️</div><div class="empty-text">No notices yet</div><div class="empty-sub">Generate a DMCA notice to get started</div></div>';
+
+    return;
+
+  }
+
+  el.innerHTML = dmcaLog.map(entry => `
+
+    <div class="file-item" style="margin-bottom:0">
+
+      <div class="file-item-icon fi-pdf">⚖️</div>
+
+      <div class="file-item-info">
+
+        <div class="file-item-name">${entry.platform} — ${entry.infringing.substring(0,50)}${entry.infringing.length>50?'...':''}</div>
+
+        <div class="file-item-meta">${new Date(entry.date).toLocaleString()}</div>
+
+      </div>
+
+      <button class="btn btn-ghost btn-sm" onclick="downloadSingleDmca('${entry.id}')">💾</button>
+
+    </div>
+
+  `).join('');
+
+}
+
+function downloadSingleDmca(id) {
+
+  const entry = dmcaLog.find(e => e.id === id);
+
+  if(!entry) return;
+
+  const blob = new Blob([entry.notice], {type:'text/plain'});
+
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+
+  a.download = `dmca-${entry.platform.toLowerCase()}-${entry.id}.txt`; a.click();
+
+}
+
+function exportDmcaLog() {
+
+  if(!dmcaLog.length) { toast('No notices to export', 'danger'); return; }
+
+  const blob = new Blob([JSON.stringify(dmcaLog, null, 2)], {type:'application/json'});
+
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+
+  a.download = `dmca-log-${Date.now()}.json`; a.click();
+
+  toast('DMCA log exported!', 'success');
+
+}
+
+/* ═══════════════════ KEYBOARD SHORTCUTS ═══════════════════ */
+
+// NEW: Ctrl+U → go to Upload page
+
+document.addEventListener('keydown', (e) => {
+
+  if((e.ctrlKey || e.metaKey) && e.key === 'u') {
+
+    e.preventDefault();
+
+    if(token) showPage('upload', document.querySelectorAll('.sidebar-item')[1]);
+
+    else openModal('register');
+
+  }
+
+  if(e.key === 'Escape') {
+
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+
+  }
+
+});
+
+/* ═══════════════════ ENTER KEYS IN FORMS ═══════════════════ */
+
+document.getElementById('login-pass').addEventListener('keydown', e => e.key==='Enter' && doLogin());
+
+document.getElementById('reg-pass').addEventListener('keydown', e => e.key==='Enter' && doRegister());
+
+/* ═══════════════════ INIT ═══════════════════ */
+
+// FIX: updateNavbarStatus uses cs_token (consistent with rest of app)
+
+(function init() {
+
+  if(token && currentUser) {
+
+    enterDashboard();
+
+  } else {
+
+    updateNav(false);
+
+  }
+
+})();
+
+</script>
+
+</body>
+
+</html>
+<script>
+/* ═══════════ NEW FEATURE PAGES JS ═══════════ */
+
+/* ── LIVE FINGERPRINT ── */
+async function liveFingerprint() {
+  const val = document.getElementById('fp-input').value;
+  const out = document.getElementById('fp-output');
+  if (!val) { out.textContent = '— type something above —'; return; }
+  const msgBuffer = new TextEncoder().encode(val);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+  out.textContent = hashHex;
+}
+
+function copyFingerprint() {
+  const val = document.getElementById('fp-output').textContent;
+  if (val === '— type something above —') return toast('Nothing to copy', 'info');
+  navigator.clipboard.writeText(val).then(() => toast('Hash copied!', 'success'));
+}
+
+/* populate fp-file-list from files already in vault */
+function loadFingerprintPage() {
+  const list = document.getElementById('fp-file-list');
+  const files = window._vaultFiles || [];
+  document.getElementById('fp-total').textContent = files.length || '—';
+  if (!files.length) return;
+  list.innerHTML = files.slice(0,8).map(f => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+      <div style="font-size:20px">${f.type && f.type.startsWith('image') ? '🖼️' : f.type && f.type.startsWith('video') ? '🎬' : '📄'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.original_name || f.filename || 'file'}</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.hash || '—'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);flex-shrink:0">${f.created_at ? new Date(f.created_at).toLocaleDateString() : ''}</div>
+    </div>`).join('');
+}
+
+/* ── INSTANT DETECTION PAGE ── */
+function loadInstantPage() {
+  const files = window._vaultFiles || [];
+  const dups = window._vaultFiles ? files.filter(f => f.is_duplicate).length : 0;
+  const si = document.getElementById('inst-scanned');
+  const di = document.getElementById('inst-dups');
+  if (si) si.textContent = files.length || '—';
+  if (di) di.textContent = dups || '—';
+
+  const log = document.getElementById('instant-detection-log');
+  const detections = window._detectionResults || [];
+  if (!detections.length) return;
+  log.innerHTML = detections.slice(0,10).map(d => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:10px;background:${d.is_duplicate ? 'rgba(224,82,82,0.05)' : 'var(--surface)'};border:1px solid ${d.is_duplicate ? 'rgba(224,82,82,0.18)' : 'rgba(255,255,255,0.06)'};margin-bottom:8px">
+      <div style="font-size:20px">${d.is_duplicate ? '🚨' : '✅'}</div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500">${d.original_name || d.filename || 'file'}</div>
+        <div style="font-size:12px;color:var(--text3)">Similarity: <span style="color:${d.similarity_score > 0.9 ? 'var(--danger)' : 'var(--warning)'}">${d.similarity_score ? Math.round(d.similarity_score*100)+'%' : '—'}</span> · ${d.platform || 'Vault'}</div>
+      </div>
+      <div style="font-size:11px;padding:3px 10px;border-radius:100px;background:${d.is_duplicate ? 'rgba(224,82,82,0.15)' : 'rgba(46,204,138,0.12)'};color:${d.is_duplicate ? 'var(--danger)' : 'var(--success)'}">${d.is_duplicate ? 'Duplicate' : 'Unique'}</div>
+    </div>`).join('');
+}
+
+function saveDetectionSettings() { toast('Detection settings saved', 'success'); }
+
+/* ── REAL-TIME ALERTS ── */
+let _alerts = [];
+let _alertCount = 0;
+
+function renderAlerts() {
+  const feed = document.getElementById('alert-feed');
+  const total = document.getElementById('alert-total');
+  const unread = document.getElementById('alert-unread');
+  if (total) total.textContent = _alertCount;
+  const unreadCount = _alerts.filter(a => !a.read).length;
+  if (unread) unread.textContent = unreadCount;
+  if (!_alerts.length) {
+    feed.innerHTML = '<div class="empty-state"><div class="empty-icon">🔔</div><div class="empty-text">No alerts yet</div><div class="empty-sub">Alerts appear here instantly when duplicates are detected</div></div>';
+    return;
+  }
+  feed.innerHTML = _alerts.slice().reverse().map((a,i) => `
+    <div onclick="markRead(${_alerts.length-1-i})" style="padding:14px;border-radius:10px;background:${a.read ? 'var(--surface)' : 'rgba(201,168,76,0.06)'};border:1px solid ${a.read ? 'rgba(255,255,255,0.06)' : 'var(--gold-border)'};cursor:pointer;transition:all 0.2s">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <span style="font-size:18px">${a.type === 'exact' ? '🚨' : '⚠️'}</span>
+        <span style="font-size:13px;font-weight:600;color:${a.type === 'exact' ? 'var(--danger)' : 'var(--warning)'}">${a.type === 'exact' ? 'Exact Duplicate' : 'Near-Duplicate'} — ${a.platform}</span>
+        ${!a.read ? '<span style="margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0"></span>' : ''}
+      </div>
+      <div style="font-size:12px;color:var(--text2)">${a.file} · <span style="color:var(--gold)">${a.score}% match</span></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">${a.time}</div>
+    </div>`).join('');
+}
+
+function markRead(idx) {
+  if (_alerts[idx]) { _alerts[idx].read = true; renderAlerts(); }
+}
+
+function clearAlerts() {
+  _alerts = []; _alertCount = 0; renderAlerts();
+  toast('All alerts cleared', 'info');
+}
+
+function fireTestAlert() {
+  if (document.getElementById('mute-alerts') && document.getElementById('mute-alerts').checked) {
+    return toast('Alerts are muted', 'info');
+  }
+  const platform = document.getElementById('test-alert-platform').value;
+  const score = document.getElementById('test-sim-val').textContent.replace('%','');
+  const isExact = parseInt(score) >= 98;
+  _alertCount++;
+  _alerts.push({
+    type: isExact ? 'exact' : 'near',
+    platform,
+    file: 'test-file-' + Math.floor(Math.random()*9999) + '.jpg',
+    score,
+    time: new Date().toLocaleTimeString(),
+    read: false
+  });
+  renderAlerts();
+  toast(`🔔 ${isExact ? 'Exact duplicate' : 'Near-duplicate'} detected on ${platform}!`, isExact ? 'danger' : 'warning');
+}
+
+function saveAlertPrefs() { toast('Alert preferences saved', 'success'); }
+
+function toggleBrowserNotif(el) {
+  if (el.checked && 'Notification' in window) {
+    Notification.requestPermission().then(p => {
+      if (p !== 'granted') { el.checked = false; toast('Browser notifications denied', 'info'); }
+      else toast('Browser notifications enabled', 'success');
+    });
+  }
+}
+
+/* ── PLATFORMS PAGE ── */
+function loadPlatformsPage() {
+  const files = window._vaultFiles || [];
+  const total = document.getElementById('plat-total-det');
+  if (total) total.textContent = files.filter(f => f.is_duplicate).length || '—';
+  const last = document.getElementById('plat-last-scan');
+  if (last) last.textContent = files.length ? 'Just now' : 'Never';
+}
+
+/* Hook into existing showPage to load our new pages */
+const _origShowPage = window.showPage;
+window.showPage = function(name, el) {
+  if (typeof _origShowPage === 'function') _origShowPage(name, el);
+  if (name === 'fingerprint') loadFingerprintPage();
+  if (name === 'instant') loadInstantPage();
+  if (name === 'realtimealerts') renderAlerts();
+  if (name === 'platforms') loadPlatformsPage();
+};
+
+/* Intercept socket/detection events to populate alerts automatically */
+document.addEventListener('cs-detection', function(e) {
+  const d = e.detail || {};
+  if (!d.is_duplicate) return;
+  _alertCount++;
+  _alerts.push({
+    type: d.similarity_score >= 0.98 ? 'exact' : 'near',
+    platform: d.platform || 'Vault',
+    file: d.original_name || d.filename || 'file',
+    score: d.similarity_score ? Math.round(d.similarity_score * 100) : 99,
+    time: new Date().toLocaleTimeString(),
+    read: false
+  });
+  const feed = document.getElementById('alert-feed');
+  if (feed && document.getElementById('page-realtimealerts').classList.contains('active')) renderAlerts();
+});
+</script>
