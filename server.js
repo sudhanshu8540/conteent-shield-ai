@@ -1,9 +1,12 @@
-const express = require('express');
-const multer = require('multer');
-const crypto = require('crypto');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+import express from 'express';
+import multer from 'multer';
+import crypto from 'crypto';
+import http from 'http';
+import { Server } from 'socket.io';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 /**
  * CONTENTSHIELD AI — ELITE REAL-TIME BACKEND (V10)
