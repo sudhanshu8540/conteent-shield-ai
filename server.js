@@ -227,6 +227,421 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// ═══════════════════════════════════════════════════════════════════
+// F. LINK SCANNER — Multi-Layer URL Safety Analysis Engine
+// ═══════════════════════════════════════════════════════════════════
+
+let linkScans = [];  // Stores all link scan results
+
+// ── Trusted / Known-Safe Domains ──
+const TRUSTED_DOMAINS = new Set([
+    'google.com', 'youtube.com', 'facebook.com', 'instagram.com', 'twitter.com',
+    'x.com', 'linkedin.com', 'github.com', 'stackoverflow.com', 'microsoft.com',
+    'apple.com', 'amazon.com', 'wikipedia.org', 'reddit.com', 'netflix.com',
+    'whatsapp.com', 'telegram.org', 'discord.com', 'spotify.com', 'medium.com',
+    'notion.so', 'figma.com', 'vercel.app', 'netlify.app', 'firebase.google.com',
+    'cloudflare.com', 'aws.amazon.com', 'azure.microsoft.com', 'dropbox.com',
+    'drive.google.com', 'docs.google.com', 'mail.google.com', 'outlook.com',
+    'paypal.com', 'stripe.com', 'zoom.us', 'slack.com', 'trello.com',
+    'adobe.com', 'canva.com', 'pinterest.com', 'tiktok.com', 'twitch.tv',
+    'npmjs.com', 'pypi.org', 'docker.com', 'kubernetes.io'
+]);
+
+// ── Suspicious / High-Risk TLDs ──
+const SUSPICIOUS_TLDS = new Set([
+    '.xyz', '.top', '.club', '.work', '.click', '.link', '.gq', '.ml',
+    '.cf', '.ga', '.tk', '.buzz', '.icu', '.cam', '.rest', '.surf',
+    '.monster', '.quest', '.sbs', '.cyou', '.cfd', '.fun', '.uno',
+    '.zip', '.mov', '.php', '.exe'
+]);
+
+// ── Known URL Shorteners ──
+const URL_SHORTENERS = new Set([
+    'bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd',
+    'buff.ly', 'adf.ly', 'bl.ink', 'short.io', 'rebrand.ly', 'cutt.ly',
+    'lnkd.in', 'youtu.be', 'rb.gy', 'v.gd', 'shorturl.at', 'tiny.cc',
+    'bitly.ws', 'shorturl.com', 'qr.ae'
+]);
+
+// ── Phishing Lookalike Brands ──
+const BRAND_PATTERNS = [
+    { brand: 'Google',    patterns: ['g00gle', 'gogle', 'googel', 'google-login', 'google-verify', 'gooogle', 'g0ogle'] },
+    { brand: 'Facebook',  patterns: ['faceb00k', 'facebook-login', 'facebok', 'faceboook', 'fb-login', 'facebook-verify'] },
+    { brand: 'PayPal',    patterns: ['paypa1', 'paypal-secure', 'paypal-login', 'paypa-l', 'pay-pal', 'paypal-verify'] },
+    { brand: 'Apple',     patterns: ['app1e', 'apple-id', 'apple-verify', 'icloud-login', 'apple-support-id'] },
+    { brand: 'Microsoft', patterns: ['micr0soft', 'microsoft-login', 'microsft', 'ms-login', 'outlook-verify'] },
+    { brand: 'Amazon',    patterns: ['amaz0n', 'amazon-login', 'amazom', 'amazon-verify', 'amazon-security'] },
+    { brand: 'Netflix',   patterns: ['netfl1x', 'netflix-login', 'netfliix', 'netflix-payment', 'netflix-verify'] },
+    { brand: 'Instagram', patterns: ['1nstagram', 'instagran', 'instagram-verify', 'instagrm', 'instagram-login'] },
+    { brand: 'Twitter',   patterns: ['tw1tter', 'twitter-verify', 'twiter', 'twiitter', 'twitter-login'] },
+    { brand: 'WhatsApp',  patterns: ['wh4tsapp', 'whatsapp-verify', 'whatsap', 'whatsapp-login', 'whatssapp'] },
+    { brand: 'LinkedIn',  patterns: ['linked1n', 'linkedin-verify', 'linkedln', 'linkedin-login'] },
+    { brand: 'Bank',      patterns: ['secure-bank', 'bank-login', 'online-banking', 'bank-verify', 'banking-secure'] },
+    { brand: 'Crypto',    patterns: ['binance-login', 'coinbase-verify', 'crypto-wallet', 'metamask-login'] },
+    { brand: 'Discord',   patterns: ['disc0rd', 'discord-nitro', 'discord-gift', 'discord-verify', 'discard'] },
+    { brand: 'Steam',     patterns: ['steampowered-login', 'steam-community', 'steamcommunlty', 'stearn'] },
+];
+
+// ── Known Blacklisted Domains (examples) ──
+const BLACKLISTED_DOMAINS = new Set([
+    'malware-site.com', 'phishing-example.com', 'virus-download.net',
+    'free-iphone.xyz', 'claim-prize.click', 'login-secure-verify.com',
+    'account-update-now.com', 'security-alert-action.com'
+]);
+
+// ─── ANALYSIS FUNCTIONS ───
+
+function extractDomain(url) {
+    try {
+        const parsed = new URL(url.startsWith('http') ? url : 'http://' + url);
+        return parsed.hostname.toLowerCase();
+    } catch {
+        return null;
+    }
+}
+
+function getRootDomain(hostname) {
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+        return parts.slice(-2).join('.');
+    }
+    return hostname;
+}
+
+function getTLD(hostname) {
+    const parts = hostname.split('.');
+    return '.' + parts[parts.length - 1];
+}
+
+// Layer 1: Protocol Analysis
+function analyzeProtocol(url) {
+    const result = { check: 'Protocol Security', weight: 15 };
+    if (url.startsWith('https://')) {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = 'HTTPS — encrypted connection';
+    } else if (url.startsWith('http://')) {
+        result.status = 'warning';
+        result.score = 30;
+        result.detail = 'HTTP — unencrypted, data can be intercepted';
+    } else {
+        result.status = 'warning';
+        result.score = 50;
+        result.detail = 'No protocol specified — cannot verify encryption';
+    }
+    return result;
+}
+
+// Layer 2: Domain Reputation
+function analyzeDomainReputation(hostname) {
+    const result = { check: 'Domain Reputation', weight: 25 };
+    const root = getRootDomain(hostname);
+    
+    if (TRUSTED_DOMAINS.has(root) || TRUSTED_DOMAINS.has(hostname)) {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = `Trusted domain — ${root} is a verified well-known website`;
+    } else if (BLACKLISTED_DOMAINS.has(root) || BLACKLISTED_DOMAINS.has(hostname)) {
+        result.status = 'danger';
+        result.score = 0;
+        result.detail = `BLACKLISTED — ${root} is flagged as malicious`;
+    } else {
+        result.status = 'unknown';
+        result.score = 50;
+        result.detail = `Unknown domain — ${root} is not in our trusted database`;
+    }
+    return result;
+}
+
+// Layer 3: TLD Risk Assessment
+function analyzeTLD(hostname) {
+    const result = { check: 'TLD Risk Assessment', weight: 10 };
+    const tld = getTLD(hostname);
+    
+    if (SUSPICIOUS_TLDS.has(tld)) {
+        result.status = 'warning';
+        result.score = 20;
+        result.detail = `High-risk TLD "${tld}" — commonly used in phishing/spam`;
+    } else if (['.com', '.org', '.net', '.edu', '.gov', '.io', '.dev', '.co', '.app'].includes(tld)) {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = `Standard TLD "${tld}" — commonly used by legitimate sites`;
+    } else {
+        result.status = 'unknown';
+        result.score = 60;
+        result.detail = `TLD "${tld}" — less common but not necessarily malicious`;
+    }
+    return result;
+}
+
+// Layer 4: Phishing Detection
+function analyzePhishing(hostname, fullUrl) {
+    const result = { check: 'Phishing Detection', weight: 25 };
+    const lowerUrl = fullUrl.toLowerCase();
+    const lowerHost = hostname.toLowerCase();
+    
+    for (const brand of BRAND_PATTERNS) {
+        for (const pattern of brand.patterns) {
+            if (lowerHost.includes(pattern) || lowerUrl.includes(pattern)) {
+                const root = getRootDomain(hostname);
+                // Check if it's actually the real brand
+                const realDomains = {
+                    'Google': ['google.com'], 'Facebook': ['facebook.com', 'fb.com'],
+                    'PayPal': ['paypal.com'], 'Apple': ['apple.com', 'icloud.com'],
+                    'Microsoft': ['microsoft.com', 'live.com', 'outlook.com'],
+                    'Amazon': ['amazon.com', 'amazon.co.uk'], 'Netflix': ['netflix.com'],
+                    'Instagram': ['instagram.com'], 'Twitter': ['twitter.com', 'x.com'],
+                    'WhatsApp': ['whatsapp.com'], 'LinkedIn': ['linkedin.com'],
+                    'Discord': ['discord.com', 'discord.gg'], 'Steam': ['steampowered.com']
+                };
+                const isReal = (realDomains[brand.brand] || []).some(d => root === d || hostname === d);
+                if (!isReal) {
+                    result.status = 'danger';
+                    result.score = 5;
+                    result.detail = `⚠️ Possible ${brand.brand} phishing — lookalike pattern "${pattern}" detected`;
+                    return result;
+                }
+            }
+        }
+    }
+    
+    // Check for suspicious keywords in URL
+    const phishKeywords = ['login', 'verify', 'secure', 'account', 'update', 'confirm', 'suspend', 'unlock'];
+    const keywordCount = phishKeywords.filter(kw => lowerUrl.includes(kw)).length;
+    
+    if (keywordCount >= 3) {
+        result.status = 'warning';
+        result.score = 25;
+        result.detail = `Multiple urgency keywords detected (${keywordCount}) — common phishing tactic`;
+    } else if (keywordCount >= 1) {
+        result.status = 'unknown';
+        result.score = 65;
+        result.detail = `Contains keyword(s) sometimes used in phishing — review carefully`;
+    } else {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = 'No phishing patterns detected';
+    }
+    return result;
+}
+
+// Layer 5: Suspicious URL Patterns
+function analyzeSuspiciousPatterns(url, hostname) {
+    const result = { check: 'URL Pattern Analysis', weight: 15 };
+    const issues = [];
+    
+    // IP-based URL
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/.test(hostname)) {
+        issues.push('IP-based URL (no domain name)');
+    }
+    
+    // @ symbol in URL (credential trick)
+    if (url.includes('@') && url.indexOf('@') < url.indexOf('/', 8)) {
+        issues.push('Contains @ symbol — possible credential injection');
+    }
+    
+    // Excessive subdomains (more than 3 levels)
+    if (hostname.split('.').length > 4) {
+        issues.push(`Excessive subdomains (${hostname.split('.').length} levels)`);
+    }
+    
+    // Very long URL
+    if (url.length > 200) {
+        issues.push(`Unusually long URL (${url.length} chars)`);
+    }
+    
+    // URL-encoded characters in domain
+    if (/%[0-9A-Fa-f]{2}/.test(hostname)) {
+        issues.push('URL-encoded characters in hostname');
+    }
+    
+    // Double dots
+    if (hostname.includes('..')) {
+        issues.push('Double dots in hostname');
+    }
+    
+    // Hyphen-heavy domain (e.g., secure-login-paypal-verify.com)
+    if ((hostname.match(/-/g) || []).length >= 3) {
+        issues.push(`Excessive hyphens in domain (${(hostname.match(/-/g) || []).length})`);
+    }
+    
+    // Data URI or javascript protocol
+    if (url.toLowerCase().startsWith('javascript:') || url.toLowerCase().startsWith('data:')) {
+        issues.push('Dangerous protocol (javascript/data URI)');
+    }
+    
+    if (issues.length >= 3) {
+        result.status = 'danger';
+        result.score = 10;
+    } else if (issues.length >= 1) {
+        result.status = 'warning';
+        result.score = 40;
+    } else {
+        result.status = 'safe';
+        result.score = 100;
+    }
+    
+    result.detail = issues.length ? issues.join(' · ') : 'Clean URL structure — no suspicious patterns';
+    result.issues = issues;
+    return result;
+}
+
+// Layer 6: URL Shortener Detection
+function analyzeShortener(hostname) {
+    const result = { check: 'Redirect / Shortener Check', weight: 5 };
+    
+    if (URL_SHORTENERS.has(hostname) || URL_SHORTENERS.has(getRootDomain(hostname))) {
+        result.status = 'warning';
+        result.score = 35;
+        result.detail = `Shortened URL detected (${hostname}) — final destination is hidden`;
+    } else {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = 'Direct link — not a URL shortener';
+    }
+    return result;
+}
+
+// Layer 7: Content Type Heuristics
+function analyzeContentHints(url) {
+    const result = { check: 'Content Heuristics', weight: 5 };
+    const lowerUrl = url.toLowerCase();
+    const dangerExtensions = ['.exe', '.bat', '.cmd', '.scr', '.msi', '.ps1', '.vbs', '.jar', '.apk'];
+    
+    const hasDangerExt = dangerExtensions.some(ext => lowerUrl.endsWith(ext) || lowerUrl.includes(ext + '?'));
+    
+    if (hasDangerExt) {
+        result.status = 'danger';
+        result.score = 10;
+        result.detail = 'Links to a potentially dangerous executable file';
+    } else if (lowerUrl.includes('download') || lowerUrl.includes('attach')) {
+        result.status = 'unknown';
+        result.score = 60;
+        result.detail = 'URL suggests a downloadable file — exercise caution';
+    } else {
+        result.status = 'safe';
+        result.score = 100;
+        result.detail = 'No dangerous content patterns detected';
+    }
+    return result;
+}
+
+// ─── COMPOSITE SCANNER ───
+
+function scanLink(url) {
+    const startTime = Date.now();
+    
+    // Normalize
+    const normalizedUrl = url.trim();
+    const hostname = extractDomain(normalizedUrl);
+    
+    if (!hostname) {
+        return {
+            url: normalizedUrl,
+            error: true,
+            message: 'Invalid URL — could not parse domain',
+            safetyScore: 0,
+            verdict: 'INVALID',
+            scanTime: Date.now() - startTime
+        };
+    }
+    
+    // Run all 7 analysis layers
+    const layers = [
+        analyzeProtocol(normalizedUrl),
+        analyzeDomainReputation(hostname),
+        analyzeTLD(hostname),
+        analyzePhishing(hostname, normalizedUrl),
+        analyzeSuspiciousPatterns(normalizedUrl, hostname),
+        analyzeShortener(hostname),
+        analyzeContentHints(normalizedUrl)
+    ];
+    
+    // Calculate weighted score
+    let totalWeight = 0;
+    let weightedScore = 0;
+    layers.forEach(layer => {
+        totalWeight += layer.weight;
+        weightedScore += layer.score * layer.weight;
+    });
+    const safetyScore = Math.round(weightedScore / totalWeight);
+    
+    // Determine verdict
+    let verdict, verdictColor;
+    if (safetyScore >= 80) { verdict = 'SAFE'; verdictColor = 'success'; }
+    else if (safetyScore >= 50) { verdict = 'CAUTION'; verdictColor = 'warning'; }
+    else if (safetyScore >= 25) { verdict = 'SUSPICIOUS'; verdictColor = 'warning'; }
+    else { verdict = 'DANGEROUS'; verdictColor = 'danger'; }
+    
+    // Check if any layer flagged danger (override)
+    const hasDanger = layers.some(l => l.status === 'danger');
+    if (hasDanger && verdict === 'SAFE') {
+        verdict = 'SUSPICIOUS';
+        verdictColor = 'warning';
+    }
+    
+    const isProtected = normalizedUrl.startsWith('https://') && safetyScore >= 70;
+    
+    return {
+        url: normalizedUrl,
+        domain: hostname,
+        rootDomain: getRootDomain(hostname),
+        error: false,
+        safetyScore,
+        verdict,
+        verdictColor,
+        isProtected,
+        isTrusted: TRUSTED_DOMAINS.has(getRootDomain(hostname)),
+        isShortener: URL_SHORTENERS.has(hostname) || URL_SHORTENERS.has(getRootDomain(hostname)),
+        isBlacklisted: BLACKLISTED_DOMAINS.has(hostname) || BLACKLISTED_DOMAINS.has(getRootDomain(hostname)),
+        layers,
+        scanTime: Date.now() - startTime,
+        scannedAt: new Date().toISOString()
+    };
+}
+
+// ── POST /api/scan-link — Scan a URL for safety
+app.post('/api/scan-link', (req, res) => {
+    const { url } = req.body;
+    
+    if (!url || typeof url !== 'string' || url.trim().length === 0) {
+        return res.status(400).json({ message: 'URL is required' });
+    }
+    
+    const result = scanLink(url);
+    
+    // Store in scan history
+    const scanRecord = {
+        id: 'scan_' + Date.now(),
+        ...result
+    };
+    linkScans.unshift(scanRecord);
+    if (linkScans.length > 100) linkScans.pop();
+    
+    // Log activity
+    const icon = result.verdict === 'SAFE' ? '✅' : result.verdict === 'DANGEROUS' ? '🚨' : '⚠️';
+    const bg = result.verdict === 'SAFE' ? 'rgba(46,204,138,0.15)' : result.verdict === 'DANGEROUS' ? 'rgba(224,82,82,0.15)' : 'rgba(232,184,71,0.15)';
+    logActivity(icon, bg, `Link scanned: <strong>${result.domain || url}</strong> — ${result.verdict} (${result.safetyScore}%)`);
+    
+    // Socket.IO alert for dangerous links
+    if (result.verdict === 'DANGEROUS' || result.verdict === 'SUSPICIOUS') {
+        io.emit('link-alert', {
+            url: result.url,
+            domain: result.domain,
+            verdict: result.verdict,
+            safetyScore: result.safetyScore,
+            time: new Date().toLocaleTimeString()
+        });
+    }
+    
+    res.json(scanRecord);
+});
+
+// ── GET /api/link-scans — Retrieve scan history
+app.get('/api/link-scans', (req, res) => {
+    res.json({ scans: linkScans, total: linkScans.length });
+});
+
 const PORT = 5000;
 server.listen(PORT, () => {
     console.log(`

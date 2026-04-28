@@ -649,6 +649,50 @@ footer strong { color: var(--gold); }
 
 textarea.form-input { resize:vertical;min-height:80px; }
 
+/* ── Link Scanner ── */
+
+.ls-input-wrap { position:relative; }
+
+.ls-input { width:100%;padding:16px 18px 16px 48px;background:var(--surface);border:2px solid rgba(201,168,76,0.2);border-radius:14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:all 0.3s; }
+
+.ls-input:focus { border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,168,76,0.1),0 0 30px rgba(201,168,76,0.08);background:var(--surface2); }
+
+.ls-input::placeholder { color:var(--text3); }
+
+.ls-input-icon { position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none; }
+
+.ls-score-ring { width:90px;height:90px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;flex-shrink:0;position:relative;transition:all 0.5s; }
+
+.ls-score-ring::before { content:'';position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(var(--ring-color) var(--ring-pct),transparent var(--ring-pct));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#000 calc(100% - 4px));animation:ringFill 1s var(--transition) both; }
+
+@keyframes ringFill { from { --ring-pct:0%; } }
+
+.ls-layer { display:flex;align-items:center;gap:12px;padding:14px;border-radius:10px;background:var(--surface);border:1px solid rgba(255,255,255,0.05);transition:all 0.2s;margin-bottom:8px; }
+
+.ls-layer:hover { border-color:rgba(201,168,76,0.15);background:var(--surface2); }
+
+.ls-layer-icon { width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0; }
+
+.ls-layer-icon.safe { background:rgba(46,204,138,0.12);color:var(--success); }
+
+.ls-layer-icon.warning { background:rgba(232,184,71,0.12);color:var(--warning); }
+
+.ls-layer-icon.danger { background:rgba(224,82,82,0.12);color:var(--danger); }
+
+.ls-layer-icon.unknown { background:rgba(91,158,232,0.12);color:var(--info); }
+
+.ls-verdict-banner { display:flex;align-items:center;gap:16px;padding:20px 24px;border-radius:14px;margin-bottom:20px;animation:fadeUp 0.4s var(--transition); }
+
+.ls-verdict-banner.safe { background:rgba(46,204,138,0.08);border:1px solid rgba(46,204,138,0.25); }
+
+.ls-verdict-banner.warning { background:rgba(232,184,71,0.08);border:1px solid rgba(232,184,71,0.25); }
+
+.ls-verdict-banner.danger { background:rgba(224,82,82,0.08);border:1px solid rgba(224,82,82,0.25); }
+
+.ls-history-item { display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:var(--surface);border:1px solid transparent;margin-bottom:6px;transition:all 0.2s;cursor:pointer; }
+
+.ls-history-item:hover { border-color:rgba(201,168,76,0.12);background:var(--surface2); }
+
 </style>
 
 </head>
@@ -934,6 +978,8 @@ textarea.form-input { resize:vertical;min-height:80px; }
       <div class="sidebar-section">
 
         <div class="sidebar-label">Tools</div>
+
+        <button class="sidebar-item" onclick="showPage('linkscanner',this)"><span class="sidebar-icon">🔗</span> Link Scanner</button>
 
         <button class="sidebar-item" onclick="showPage('bulk',this)"><span class="sidebar-icon">📦</span> Bulk Upload</button>
 
@@ -1915,6 +1961,61 @@ textarea.form-input { resize:vertical;min-height:80px; }
             <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Pinterest</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:26%;background:linear-gradient(90deg,#E60023,#ad081b);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">62</div></div>
             <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">LinkedIn</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:20%;background:linear-gradient(90deg,#0A66C2,#004182);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">47</div></div>
             <div style="display:flex;align-items:center;gap:12px"><div style="width:90px;font-size:13px;color:var(--text2);flex-shrink:0">Reddit</div><div style="flex:1;height:10px;background:var(--surface2);border-radius:5px"><div style="height:100%;width:12%;background:linear-gradient(90deg,#FF4500,#cc3700);border-radius:5px"></div></div><div style="width:36px;text-align:right;font-size:13px;font-weight:600">29</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── LINK SCANNER PAGE ── -->
+      <div class="page" id="page-linkscanner">
+        <div class="page-header">
+          <div><div class="page-title">Link Scanner</div><div class="page-sub">Analyze any URL for safety, phishing, and protection status</div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="clearLinkHistory()">🗑️ Clear History</button>
+          </div>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom:24px">
+          <div class="stat-card gold-accent"><div class="stat-card-label">🔗 Links Scanned</div><div class="stat-card-value" id="ls-total">0</div><div class="stat-card-trend">All time</div></div>
+          <div class="stat-card"><div class="stat-card-label">✅ Safe Links</div><div class="stat-card-value" id="ls-safe">0</div><div class="stat-card-trend">Verified secure</div></div>
+          <div class="stat-card"><div class="stat-card-label">⚠️ Suspicious</div><div class="stat-card-value" id="ls-suspicious">0</div><div class="stat-card-trend">Needs review</div></div>
+          <div class="stat-card"><div class="stat-card-label">🚨 Dangerous</div><div class="stat-card-value" id="ls-dangerous">0</div><div class="stat-card-trend">Blocked threats</div></div>
+        </div>
+
+        <!-- Scan Input -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔍 Scan a Link</div><div class="card-sub">Paste any URL to analyze its safety across 7 detection layers</div></div>
+          <div class="ls-input-wrap">
+            <span class="ls-input-icon">🌐</span>
+            <input type="text" class="ls-input" id="ls-url-input" placeholder="Paste a URL here... e.g. https://example.com" onkeydown="if(event.key==='Enter')scanLinkAction()">
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn btn-gold" onclick="scanLinkAction()" id="ls-scan-btn">🛡️ Scan Link</button>
+            <button class="btn btn-ghost btn-sm" onclick="scanLinkAction('https://google.com')">Try: google.com</button>
+            <button class="btn btn-ghost btn-sm" onclick="scanLinkAction('http://faceb00k-login.xyz/verify')">Try: phishing</button>
+            <button class="btn btn-ghost btn-sm" onclick="scanLinkAction('https://bit.ly/3xR4kT9')">Try: shortener</button>
+          </div>
+        </div>
+
+        <!-- Scan Result -->
+        <div id="ls-result-area" style="display:none">
+          <div id="ls-verdict-container"></div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🔬 7-Layer Analysis</div><div class="card-sub">Detailed breakdown of each security check</div></div>
+              <div id="ls-layers-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📋 Link Details</div></div>
+              <div id="ls-details"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scan History -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">📜 Scan History</div><div class="card-sub">Previously scanned links</div></div>
+          <div id="ls-history" style="max-height:340px;overflow-y:auto">
+            <div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">No scans yet</div><div class="empty-sub">Scan a link to see results here</div></div>
           </div>
         </div>
       </div>
@@ -4088,6 +4189,7 @@ window.showPage = function(name, el) {
   if (name === 'instant') loadInstantPage();
   if (name === 'realtimealerts') renderAlerts();
   if (name === 'platforms') loadPlatformsPage();
+  if (name === 'linkscanner') loadLinkScannerPage();
 };
 
 /* Intercept socket/detection events to populate alerts automatically */
@@ -4106,4 +4208,144 @@ document.addEventListener('cs-detection', function(e) {
   const feed = document.getElementById('alert-feed');
   if (feed && document.getElementById('page-realtimealerts').classList.contains('active')) renderAlerts();
 });
+
+/* ═══════════ LINK SCANNER ═══════════ */
+let _linkScans = [];
+
+async function scanLinkAction(presetUrl) {
+  const input = document.getElementById('ls-url-input');
+  const url = presetUrl || input.value.trim();
+  if (!url) { toast('Please enter a URL to scan', 'warning'); return; }
+  if (presetUrl) input.value = presetUrl;
+
+  const btn = document.getElementById('ls-scan-btn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Scanning...';
+
+  try {
+    const resp = await fetch(API_BASE + '/scan-link', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast(data.message || 'Scan failed', 'danger'); return; }
+    _linkScans.unshift(data);
+    renderLinkResult(data);
+    renderLinkHistory();
+    updateLinkStats();
+    toast(`Link scanned: ${data.verdict}`, data.verdictColor === 'success' ? 'success' : data.verdictColor === 'danger' ? 'danger' : 'warning');
+  } catch(e) {
+    toast('Server error — make sure backend is running', 'danger');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🛡️ Scan Link';
+  }
+}
+
+function renderLinkResult(r) {
+  document.getElementById('ls-result-area').style.display = 'block';
+  const colors = { success:'var(--success)', warning:'var(--warning)', danger:'var(--danger)' };
+  const icons = { SAFE:'✅', CAUTION:'⚠️', SUSPICIOUS:'🚨', DANGEROUS:'💀', INVALID:'❌' };
+  const color = colors[r.verdictColor] || 'var(--text2)';
+
+  // Verdict banner
+  document.getElementById('ls-verdict-container').innerHTML = `
+    <div class="ls-verdict-banner ${r.verdictColor}">
+      <div class="ls-score-ring" style="--ring-color:${color};--ring-pct:${r.safetyScore}%;background:rgba(255,255,255,0.03);color:${color}">${r.safetyScore}</div>
+      <div style="flex:1">
+        <div style="font-size:20px;font-weight:700;color:${color};margin-bottom:4px">${icons[r.verdict]||'🔍'} ${r.verdict}</div>
+        <div style="font-size:13px;color:var(--text2);word-break:break-all">${r.url}</div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          ${r.isProtected ? '<span class="badge badge-success">🔒 Protected</span>' : '<span class="badge badge-warning">🔓 Not Protected</span>'}
+          ${r.isTrusted ? '<span class="badge badge-success">✅ Trusted</span>' : ''}
+          ${r.isShortener ? '<span class="badge badge-warning">🔗 Shortener</span>' : ''}
+          ${r.isBlacklisted ? '<span class="badge badge-danger">🚫 Blacklisted</span>' : ''}
+          <span class="badge badge-info">⚡ ${r.scanTime}ms</span>
+        </div>
+      </div>
+    </div>`;
+
+  // 7-Layer analysis
+  const layerIcons = ['🔒','🌐','📛','🎣','🔎','🔗','📦'];
+  document.getElementById('ls-layers-list').innerHTML = r.layers.map((l,i) => {
+    const statusIcon = l.status==='safe'?'✅':l.status==='danger'?'❌':l.status==='warning'?'⚠️':'ℹ️';
+    return `<div class="ls-layer">
+      <div class="ls-layer-icon ${l.status}">${layerIcons[i]||'🔍'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;display:flex;justify-content:space-between">
+          <span>${l.check}</span><span style="color:${colors[l.status==='safe'?'success':l.status==='danger'?'danger':'warning']||'var(--text3)'};font-family:'JetBrains Mono',monospace;font-size:12px">${statusIcon} ${l.score}%</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">${l.detail}</div>
+        <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${l.score}%;background:${l.score>=80?'var(--success)':l.score>=50?'var(--warning)':'var(--danger)'};border-radius:2px;transition:width 0.6s"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Details panel
+  document.getElementById('ls-details').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="padding:12px;background:var(--surface);border-radius:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Domain</div>
+        <div style="font-size:14px;font-weight:600;color:var(--gold)">${r.domain || '—'}</div>
+      </div>
+      <div style="padding:12px;background:var(--surface);border-radius:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Root Domain</div>
+        <div style="font-size:14px;font-weight:500">${r.rootDomain || '—'}</div>
+      </div>
+      <div style="padding:12px;background:var(--surface);border-radius:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Protocol</div>
+        <div style="font-size:14px;font-weight:500">${r.url.startsWith('https')?'🔒 HTTPS (Encrypted)':r.url.startsWith('http')?'🔓 HTTP (Unencrypted)':'❓ Unknown'}</div>
+      </div>
+      <div style="padding:12px;background:var(--surface);border-radius:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Protection Status</div>
+        <div style="font-size:14px;font-weight:600;color:${r.isProtected?'var(--success)':'var(--warning)'}">${r.isProtected?'🛡️ Protected — HTTPS + High Score':'⚠️ Not Fully Protected'}</div>
+      </div>
+      <div style="padding:12px;background:var(--surface);border-radius:10px">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Scanned At</div>
+        <div style="font-size:13px;color:var(--text2)">${r.scannedAt ? new Date(r.scannedAt).toLocaleString() : '—'}</div>
+      </div>
+    </div>`;
+}
+
+function renderLinkHistory() {
+  const el = document.getElementById('ls-history');
+  if (!_linkScans.length) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔗</div><div class="empty-text">No scans yet</div><div class="empty-sub">Scan a link to see results here</div></div>';
+    return;
+  }
+  el.innerHTML = _linkScans.slice(0,20).map(s => {
+    const color = s.verdictColor==='success'?'var(--success)':s.verdictColor==='danger'?'var(--danger)':'var(--warning)';
+    const icon = s.verdict==='SAFE'?'✅':s.verdict==='DANGEROUS'?'💀':'⚠️';
+    return `<div class="ls-history-item" onclick="renderLinkResult(${JSON.stringify(s).replace(/"/g,'&quot;')})">
+      <div style="font-size:20px">${icon}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.domain||s.url}</div>
+        <div style="font-size:11px;color:var(--text3)">${s.scannedAt?new Date(s.scannedAt).toLocaleTimeString():''}</div>
+      </div>
+      <div style="font-size:12px;font-weight:600;color:${color}">${s.safetyScore}%</div>
+      <div style="padding:3px 10px;border-radius:100px;font-size:10px;font-weight:600;color:${color};background:${s.verdictColor==='success'?'rgba(46,204,138,0.12)':s.verdictColor==='danger'?'rgba(224,82,82,0.12)':'rgba(232,184,71,0.12)'}">${s.verdict}</div>
+    </div>`;
+  }).join('');
+}
+
+function updateLinkStats() {
+  document.getElementById('ls-total').textContent = _linkScans.length;
+  document.getElementById('ls-safe').textContent = _linkScans.filter(s=>s.verdict==='SAFE').length;
+  document.getElementById('ls-suspicious').textContent = _linkScans.filter(s=>s.verdict==='CAUTION'||s.verdict==='SUSPICIOUS').length;
+  document.getElementById('ls-dangerous').textContent = _linkScans.filter(s=>s.verdict==='DANGEROUS').length;
+}
+
+function clearLinkHistory() {
+  _linkScans = [];
+  document.getElementById('ls-result-area').style.display = 'none';
+  renderLinkHistory();
+  updateLinkStats();
+  toast('Link scan history cleared', 'info');
+}
+
+function loadLinkScannerPage() {
+  updateLinkStats();
+  renderLinkHistory();
+}
 </script>
