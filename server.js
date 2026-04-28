@@ -398,7 +398,24 @@ app.post('/api/scan-link', optionalAuth, (req, res) => {
 
 app.get('/api/link-scans', optionalAuth, (req, res) => {
   const scans = db.prepare('SELECT * FROM link_scans ORDER BY scanned_at DESC LIMIT 100').all();
-  res.json({ scans: scans.map(s => ({ ...s, layers: (() => { try { return JSON.parse(s.layers); } catch { return []; } })() })), total: scans.length });
+  const total = scans.length;
+  const safe = scans.filter(s => s.verdict === 'SAFE').length;
+  const suspicious = scans.filter(s => s.verdict === 'CAUTION' || s.verdict === 'SUSPICIOUS').length;
+  const dangerous = scans.filter(s => s.verdict === 'DANGEROUS').length;
+  res.json({
+    scans: scans.map(s => ({ ...s, layers: (() => { try { return JSON.parse(s.layers); } catch { return []; } })() })),
+    total, safe, suspicious, dangerous
+  });
+});
+
+app.delete('/api/link-scans/clear', optionalAuth, (req, res) => {
+  const userId = req.user?.id;
+  if (userId) {
+    db.prepare('DELETE FROM link_scans WHERE user_id = ?').run(userId);
+  } else {
+    db.prepare('DELETE FROM link_scans WHERE user_id IS NULL').run();
+  }
+  res.json({ message: 'Link scan history cleared' });
 });
 
 // Catch-all for SPA

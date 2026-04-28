@@ -2621,7 +2621,11 @@ function enterDashboard() {
 
   // Check backend first, THEN init socket — avoids connection spam if offline
 
-  checkApiStatus().then(() => initSocket());
+  checkApiStatus().then(() => {
+    initSocket();
+    // Preload link scan history from database so stats persist across refresh
+    if (typeof loadLinkScannerPage === 'function') loadLinkScannerPage();
+  });
 
 }
 
@@ -4338,10 +4342,50 @@ function clearLinkHistory() {
   document.getElementById('ls-result-area').style.display = 'none';
   renderLinkHistory();
   updateLinkStats();
+  // Also clear from backend
+  fetch(API_BASE + '/link-scans/clear', { method: 'DELETE',
+    headers: token ? { Authorization: 'Bearer ' + token } : {}
+  }).catch(() => {});
   toast('Link scan history cleared', 'info');
 }
 
-function loadLinkScannerPage() {
+async function loadLinkScannerPage() {
+  // Fetch saved scans from the backend database so counts persist across refresh
+  try {
+    const resp = await fetch(API_BASE + '/link-scans', {
+      headers: token ? { Authorization: 'Bearer ' + token } : {}
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.scans && data.scans.length) {
+        // Merge backend scans with any new in-memory scans not yet saved
+        const existingIds = new Set(_linkScans.map(s => s.id));
+        const backendScans = data.scans.map(s => ({
+          id: s.id,
+          url: s.url,
+          domain: s.domain,
+          safetyScore: s.safety_score,
+          verdict: s.verdict,
+          verdictColor: s.verdict_color,
+          isProtected: !!s.is_protected,
+          isTrusted: false,
+          isShortener: false,
+          isBlacklisted: false,
+          layers: s.layers || [],
+          scanTime: s.scan_time,
+          scannedAt: s.scanned_at,
+          rootDomain: s.domain ? s.domain.split('.').slice(-2).join('.') : s.domain
+        }));
+        // Keep in-memory scans that aren't in backend yet, then add all backend scans
+        const newOnlyScans = _linkScans.filter(s => s.id && !backendScans.find(b => b.id === s.id));
+        _linkScans = [...newOnlyScans, ...backendScans];
+        // Sort newest first
+        _linkScans.sort((a, b) => new Date(b.scannedAt || 0) - new Date(a.scannedAt || 0));
+      }
+    }
+  } catch(e) {
+    // Backend unavailable — use whatever is in memory
+  }
   updateLinkStats();
   renderLinkHistory();
 }
